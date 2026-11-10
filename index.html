@@ -1,66 +1,313 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GearhouseGames</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #222;
-      color: #fff;
-      margin: 0;
-      padding: 40px 20px;
-      text-align: center;
-    }
-    h1 {
-      font-size: 2.5em;
-      margin-bottom: 10px;
-      letter-spacing: 2px;
-    }
-    .subtitle {
-      color: #aaa;
-      margin-bottom: 40px;
-    }
-    .game-list {
-      list-style: none;
-      padding: 0;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    .game-list li {
-      background: #333;
-      margin: 15px 0;
-      border-radius: 8px;
-      border: 2px solid #555;
-      transition: border-color 0.2s;
-    }
-    .game-list li:hover {
-      border-color: #fff;
-    }
-    .game-list a {
-      display: block;
-      padding: 20px;
-      color: #fff;
-      text-decoration: none;
-      font-size: 1.4em;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GearhouseGames</title>
+    <style>
+        /* Base Roblox App Theme */
+        :root {
+            --bg-base: #111214;
+            --bg-surface: #232527;
+            --bg-hover: #393b3d;
+            --text-main: #ffffff;
+            --text-muted: #b8b8b8;
+            --accent-green: #00b06f;
+            --accent-green-hover: #008f5a;
+            --sidebar-width: 240px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            border-right: 1px solid #000;
+        }
+
+        .sidebar-logo {
+            font-size: 22px;
+            font-weight: 800;
+            padding: 0 20px 30px 20px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 12px 20px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: var(--bg-hover);
+            color: var(--text-main);
+            border-left: 4px solid var(--text-main);
+            padding-left: 16px; /* Adjust for border */
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Top Header */
+        .top-header {
+            height: 60px;
+            background-color: var(--bg-surface);
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .search-bar {
+            background-color: var(--bg-base);
+            border: 1px solid var(--bg-hover);
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: var(--text-main);
+            width: 100%;
+            max-width: 400px;
+            outline: none;
+        }
+
+        .search-bar:focus {
+            border-color: var(--text-muted);
+        }
+
+        /* Game Grid Container */
+        .content-wrapper {
+            padding: 30px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        /* Game Card (Experience Thumbnail) */
+        .game-card {
+            background-color: var(--bg-surface);
+            border-radius: 12px;
+            overflow: hidden;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            cursor: pointer;
+            display: block;
+        }
+
+        .game-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+        }
+
+        .thumbnail-container {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: linear-gradient(135deg, #2a2d30 0%, #1a1c1e 100%);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Play Button Overlay on Hover */
+        .play-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .game-card:hover .play-overlay {
+            opacity: 1;
+        }
+
+        .play-btn {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .game-card:hover .play-btn {
+            background-color: var(--accent-green-hover);
+        }
+
+        /* Game Metadata */
+        .game-info {
+            padding: 15px;
+        }
+
+        .game-title {
+            color: var(--text-main);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .game-stats {
+            color: var(--text-muted);
+            font-size: 13px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        .stat span {
+            font-weight: 600;
+        }
+        
+        /* Thumbnail placeholders for aesthetic */
+        .thumb-chess { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); }
+        .thumb-3d { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .thumb-book { background: linear-gradient(135deg, #870000 0%, #190a05 100%); }
+
+    </style>
 </head>
 <body>
 
-  <h1>GearhouseGames™</h1>
-  <p class="subtitle">Independent Web & Desktop Gaming</p>
-  
-  <ul class="game-list">
-    <!-- Link to your chess game -->
-    <li>
-      <a href="chess.html">♟️ Chess vs AI</a>
-    </li>
-    
-    <!-- When you add more games, copy the list item above and change the file name -->
-  </ul>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            ⚙️ Gearhouse
+        </div>
+        <a href="#" class="nav-link active">🏠 Home</a>
+        <a href="#" class="nav-link">🎮 Discover</a>
+        <a href="#" class="nav-link">🔨 Create</a>
+        <div style="flex-grow: 1;"></div>
+        <a href="#" class="nav-link">⚙️ Settings</a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+        <!-- Top Search/Profile Header -->
+        <header class="top-header">
+            <input type="text" class="search-bar" placeholder="Search for experiences...">
+        </header>
+
+        <!-- Game Grids -->
+        <div class="content-wrapper">
+            
+            <div class="section-title">Continue Playing</div>
+            <div class="game-grid">
+                
+                <!-- Chess Card -->
+                <a href="chess.html" class="game-card">
+                    <div class="thumbnail-container thumb-chess">
+                        <div class="play-overlay">
+                            <div class="play-btn">▶</div>
+                        </div>
+                    </div>
+                    <div class="game-info">
+                        <div class="game-title">Chess vs AI</div>
+                        <div class="game-stats">
+                            <div class="stat">👍 <span>100%</span></div>
+                            <div class="stat">👤 <span>Singleplayer</span></div>
+                        </div>
+                    </div>
+                </a>
+
+                <!-- 3D Action Game Card -->
+                <a href="action-game.html" class="game-card">
+                    <div class="thumbnail-container thumb-3d">
+                        <div class="play-overlay">
+                            <div class="play-btn">▶</div>
+                        </div>
+                    </div>
+                    <div class="game-info">
+                        <div class="game-title">Terrain Map Editor & Arena</div>
+                        <div class="game-stats">
+                            <div class="stat">👍 <span>98%</span></div>
+                            <div class="stat">🔨 <span>Dev Build</span></div>
+                        </div>
+                    </div>
+                </a>
+
+            </div>
+
+            <div class="section-title">Recommended for You</div>
+            <div class="game-grid">
+
+                <!-- Steel and Silence Placeholder -->
+                <a href="#" class="game-card">
+                    <div class="thumbnail-container thumb-book">
+                        <div class="play-overlay">
+                            <div class="play-btn">▶</div>
+                        </div>
+                    </div>
+                    <div class="game-info">
+                        <div class="game-title">Steel and Silence: Aegis</div>
+                        <div class="game-stats">
+                            <div class="stat">👍 <span>95%</span></div>
+                            <div class="stat">📖 <span>Story Mode</span></div>
+                        </div>
+                    </div>
+                </a>
+
+            </div>
+
+        </div>
+    </main>
 
 </body>
 </html>
