@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fruit Crush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --plum-dark:#1c1130;
+    --plum-mid:#2b1a45;
+    --wood-light:#9a6a3c;
+    --wood-mid:#7a4d28;
+    --wood-dark:#4f2f18;
+    --gold:#ffcf5c;
+    --cream:#fdf3e2;
+    --apple:#ff4757;
+    --banana:#ffd23f;
+    --grape:#a66dd4;
+    --orange:#ff8c42;
+    --strawberry:#ff6b9d;
+    --cell: 62px;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:
+      radial-gradient(circle at 20% 10%, rgba(255,207,92,0.10), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(166,109,212,0.15), transparent 45%),
+      linear-gradient(180deg, var(--plum-dark), var(--plum-mid) 60%, var(--plum-dark));
+    font-family:'Nunito', sans-serif;
+    color:var(--cream);
+    padding: 24px 12px 40px;
+    overflow-x:hidden;
+  }
+
+  .title{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size: clamp(2rem, 6vw, 3rem);
+    letter-spacing:0.5px;
+    color:var(--gold);
+    text-shadow: 0 3px 0 var(--wood-dark), 0 8px 18px rgba(0,0,0,0.45);
+    margin: 0 0 4px;
+    text-align:center;
+  }
+  .subtitle{
+    font-size:0.9rem;
+    color:#cbb8e8;
+    margin-bottom:18px;
+    text-align:center;
+  }
+
+  .lights{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin-bottom: -6px;
+    z-index:2;
+  }
+  .lights span{
+    width:9px;height:9px;border-radius:50%;
+    background: var(--gold);
+    box-shadow:0 0 8px 2px rgba(255,207,92,0.8);
+    animation: twinkle 1.6s ease-in-out infinite;
+  }
+  .lights span:nth-child(odd){animation-delay:.4s; background:var(--strawberry); box-shadow:0 0 8px 2px rgba(255,107,157,.8);}
+  .lights span:nth-child(3n){animation-delay:.8s; background:var(--orange); box-shadow:0 0 8px 2px rgba(255,140,66,.8);}
+  @keyframes twinkle{ 0%,100%{opacity:.4; transform:scale(.85);} 50%{opacity:1; transform:scale(1.15);} }
+
+  .hud{
+    display:flex;
+    gap:18px;
+    align-items:center;
+    background:linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.1));
+    border:1px solid rgba(255,255,255,0.08);
+    padding:10px 18px;
+    border-radius:14px;
+    margin-bottom:16px;
+    backdrop-filter: blur(3px);
+  }
+  .hud .stat{ text-align:center; }
+  .hud .stat .num{
+    font-family:'Baloo 2', sans-serif;
+    font-size:1.4rem;
+    font-weight:700;
+    color:var(--cream);
+    display:block;
+  }
+  .hud .stat .lbl{
+    font-size:0.7rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:#b6a3d9;
+  }
+  .hud button{
+    font-family:'Nunito', sans-serif;
+    font-weight:700;
+    font-size:0.85rem;
+    background: linear-gradient(180deg, var(--wood-light), var(--wood-mid));
+    color:var(--cream);
+    border:1px solid rgba(0,0,0,0.3);
+    border-radius:10px;
+    padding:9px 14px;
+    cursor:pointer;
+    box-shadow: 0 3px 0 var(--wood-dark);
+    transition: transform .08s ease;
+  }
+  .hud button:active{ transform: translateY(2px); box-shadow:0 1px 0 var(--wood-dark); }
+
+  .crate{
+    position:relative;
+    padding: 18px;
+    border-radius: 18px;
+    background:
+      repeating-linear-gradient(0deg, var(--wood-mid) 0 8px, var(--wood-light) 8px 16px);
+    box-shadow:
+      inset 0 0 0 4px var(--wood-dark),
+      0 18px 40px rgba(0,0,0,0.5);
+  }
+  .crate::before{
+    content:"";
+    position:absolute; inset:6px;
+    border:3px dashed rgba(0,0,0,0.18);
+    border-radius:12px;
+    pointer-events:none;
+  }
+
+  #board{
+    position:relative;
+    background: linear-gradient(180deg, #241533, #1a0f27);
+    border-radius: 10px;
+    box-shadow: inset 0 0 18px rgba(0,0,0,0.6);
+    touch-action:none;
+    overflow:hidden;
+  }
+
+  .tile{
+    position:absolute;
+    width: var(--cell);
+    height: var(--cell);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: calc(var(--cell) * 0.56);
+    cursor:grab;
+    user-select:none;
+    -webkit-user-select:none;
+    transition: transform 0.22s cubic-bezier(.4,1.4,.5,1), opacity 0.2s ease;
+    will-change: transform;
+    filter: drop-shadow(0 3px 3px rgba(0,0,0,0.4));
+    z-index:5;
+  }
+  .tile.dragging{
+    transition:none;
+    cursor:grabbing;
+    z-index:20;
+    filter: drop-shadow(0 6px 8px rgba(0,0,0,0.55));
+  }
+
+  .tile.popping{
+    animation: messyPop 0.35s ease-out forwards;
+    pointer-events:none;
+  }
+
+  @keyframes messyPop{
+    0% { transform: scale(1) rotate(0deg); opacity: 1; filter: contrast(100%); }
+    40% { transform: scale(1.35) rotate(12deg); opacity: 0.9; filter: contrast(160%) brightness(1.2); }
+    100% { transform: scale(0.1) rotate(-25deg); opacity: 0; filter: blur(4px); }
+  }
+
+  .tile.spawning{ opacity:0 !important; }
+
+  .tile .glyph{
+    position:relative;
+    z-index:2;
+  }
+
+  .tile.helicopter .glyph{
+    animation: spinBlade 0.5s linear infinite;
+  }
+  @keyframes spinBlade{
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .flying-copter{
+    position:absolute;
+    width: var(--cell);
+    height: var(--cell);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: calc(var(--cell) * 0.7);
+    z-index:40;
+    pointer-events:none;
+    animation: spinBlade 0.2s linear infinite;
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,0.6));
+  }
+
+  .tile.firework{ animation: pulseFirework 1.1s ease-in-out infinite; }
+  .tile.firework::after{
+    content: attr(data-dir-arrow);
+    position:absolute;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #fff;
+    bottom: 2px;
+    right: 4px;
+    text-shadow: 0 1px 3px #000;
+    z-index:3;
+  }
+  @keyframes pulseFirework{
+    0%,100%{ filter: drop-shadow(0 0 4px var(--fw-color, var(--gold))); }
+    50%{ filter: drop-shadow(0 0 12px var(--fw-color, var(--gold))); }
+  }
+
+  .juice-splash{
+    position:absolute;
+    border-radius:50%;
+    pointer-events:none;
+    z-index:25;
+    opacity:0.85;
+  }
+
+  .rowFlash, .colFlash{
+    position:absolute;
+    pointer-events:none;
+    z-index:15;
+    animation: flashAnim .5s ease-out forwards;
+  }
+  .rowFlash{
+    left:0; height: var(--cell);
+    background: linear-gradient(90deg, transparent, rgba(255,220,120,0.7), transparent);
+  }
+  .colFlash{
+    top:0; width: var(--cell);
+    background: linear-gradient(180deg, transparent, rgba(255,220,120,0.7), transparent);
+  }
+  @keyframes flashAnim{ 0%{ opacity:0; } 30%{ opacity:1; } 100%{ opacity:0; } }
+
+  .msg{
+    position:absolute; top:8px; left:50%; transform: translateX(-50%);
+    font-family:'Baloo 2', sans-serif; font-weight:700; font-size:1.1rem;
+    color:var(--gold); text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    pointer-events:none; opacity:0; z-index:30; transition: opacity .2s ease, transform .2s ease;
+  }
+  .msg.show{ opacity:1; transform: translateX(-50%) translateY(6px); }
+
+  .game-over-overlay {
+    position: absolute; inset: 0; background: rgba(28, 17, 48, 0.88);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 50; backdrop-filter: blur(4px); animation: fadeIn 0.3s ease-out;
+  }
+  .game-over-overlay h2 { font-family: 'Baloo 2', sans-serif; font-size: 2.2rem; color: var(--gold); margin: 0 0 6px; }
+  .game-over-overlay p { font-size: 1.1rem; color: var(--cream); margin: 0 0 18px; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  footer{ margin-top:16px; font-size:0.78rem; color:#8f7cb0; text-align:center; max-width:440px; }
+  footer b{ color:#c9b6e8; }
+
+  @media (max-width:480px){ :root{ --cell: 42px; } }
+</style>
+</head>
+<body>
+
+  <div class="lights">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <h1 class="title">🍉 Fruit Crush</h1>
+  <p class="subtitle">Match 3 to pop, 4 for a firework, or 2x2 for a cross-exploding helicopter! 🚁</p>
+
+  <div class="hud">
+    <div class="stat"><span class="num" id="movesNum">30</span><span class="lbl">Moves</span></div>
+    <div class="stat"><span class="num" id="scoreNum">0</span><span class="lbl">Score</span></div>
+    <div class="stat"><span class="num" id="bestNum">0</span><span class="lbl">Best</span></div>
+    <button id="restartBtn">New Game</button>
+  </div>
+
+  <div class="crate">
+    <div id="board"></div>
+  </div>
+
+  <footer>Tip: Vertical 4-in-a-row gives a <b>Row Firework (↔️)</b> you can drag up/down. Horizontal 4 gives a <b>Column Firework (↕️)</b>!</footer>
+
+<script>
+(() => {
+  const ROWS = 8, COLS = 8;
+  const MAX_MOVES = 30;
+  const CELL = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'));
+  const FRUITS = [
+    { key:'apple',      glyph:'🍎', color:'var(--apple)', hex:'#ff4757' },
+    { key:'banana',     glyph:'🍌', color:'var(--banana)', hex:'#ffd23f' },
+    { key:'grape',      glyph:'🍇', color:'var(--grape)', hex:'#a66dd4' },
+    { key:'orange',     glyph:'🍊', color:'var(--orange)', hex:'#ff8c42' },
+    { key:'strawberry', glyph:'🍓', color:'var(--strawberry)', hex:'#ff6b9d' },
+  ];
+
+  const boardEl = document.getElementById('board');
+  const movesNumEl = document.getElementById('movesNum');
+  const scoreNumEl = document.getElementById('scoreNum');
+  const bestNumEl = document.getElementById('bestNum');
+  const restartBtn = document.getElementById('restartBtn');
+
+  let moves = MAX_MOVES;
+  let score = 0;
+  let best = Number(localStorage.getItem('fruitCrushBest') || 0);
+  bestNumEl.textContent = best;
+
+  let grid = [];
+  let uid = 0;
+  let busy = false;
+  let dragState = null;
+
+  const sleep = ms => new Promise(res => setTimeout(res, ms));
+  const randType = () => Math.floor(Math.random() * FRUITS.length);
+  const inBounds = (r,c) => r >= 0 && r < ROWS && c >= 0 && c < COLS;
+
+  function sizeBoard(){
+    const cell = CELL();
+    boardEl.style.width = (cell * COLS) + 'px';
+    boardEl.style.height = (cell * ROWS) + 'px';
+  }
+
+  function makeTileEl(tile, spawning = false){
+    const el = document.createElement('div');
+    el.className = 'tile' + (spawning ? ' spawning' : '');
+    if(spawning) el.style.opacity = '0';
+
+    if(tile.special === 'helicopter'){
+      el.classList.add('helicopter');
+      el.innerHTML = `<span class="glyph">🚁</span>`;
+    } else if(tile.special === 'firework'){
+      el.classList.add('firework');
+      el.style.setProperty('--fw-color', FRUITS[tile.type].color);
+      el.setAttribute('data-dir-arrow', tile.fireworkDir === 'row' ? '↔️' : '↕️');
+      el.innerHTML = `<span class="glyph">🎆</span>`;
+    } else {
+      el.style.setProperty('--fw-color', FRUITS[tile.type].color);
+      const g = document.createElement('span');
+      g.className = 'glyph';
+      g.textContent = FRUITS[tile.type].glyph;
+      el.appendChild(g);
+    }
+    boardEl.appendChild(el);
+    tile.el = el;
+    positionTile(tile, tile.r, tile.c, false);
+    attachDrag(tile);
+    return el;
+  }
+
+  function positionTile(tile, r, c, animate=true){
+    const cell = CELL();
+    const x = c * cell, y = r * cell;
+    if(!animate){
+      tile.el.style.transition = 'none';
+    } else {
+      tile.el.style.transition = '';
+    }
+    tile.el.style.transform = `translate(${x}px, ${y}px)`;
+    if(!animate){
+      void tile.el.offsetWidth;
+      tile.el.style.transition = '';
+    }
+  }
+
+  function refreshTileGraphics(tile){
+    if(tile.special === 'helicopter'){
+      tile.el.className = 'tile helicopter';
+      tile.el.innerHTML = `<span class="glyph">🚁</span>`;
+    } else if(tile.special === 'firework'){
+      tile.el.className = 'tile firework';
+      tile.el.setAttribute('data-dir-arrow', tile.fireworkDir === 'row' ? '↔️' : '↕️');
+      tile.el.innerHTML = `<span class="glyph">🎆</span>`;
+      tile.el.style.setProperty('--fw-color', FRUITS[tile.type].color);
+    }
+  }
+
+  function useMove(){
+    if(moves <= 0) return;
+    moves--;
+    movesNumEl.textContent = moves;
+    if(moves === 0){
+      setTimeout(showGameOver, 500);
+    }
+  }
+
+  function showGameOver(){
+    const existing = boardEl.querySelector('.game-over-overlay');
+    if(existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'game-over-overlay';
+    overlay.innerHTML = `
+      <h2>Out of Moves!</h2>
+      <p>Final Score: <b>${score}</b></p>
+    `;
+    boardEl.appendChild(overlay);
+  }
+
+  function buildInitialGrid(){
+    moves = MAX_MOVES;
+    movesNumEl.textContent = moves;
+    grid = [];
+    for(let r=0;r<ROWS;r++){
+      const row = [];
+      for(let c=0;c<COLS;c++){
+        let t;
+        let tries = 0;
+        do{
+          t = randType();
+          tries++;
+        } while(
+          tries < 20 && (
+            (c>=2 && row[c-1] && row[c-2] && row[c-1].type===t && row[c-2].type===t) ||
+            (r>=2 && grid[r-1][c] && grid[r-2][c] && grid[r-1][c].type===t && grid[r-2][c].type===t)
+          )
+        );
+        row.push({ id: uid++, type:t, special:null, fireworkDir:null, r, c, el:null });
+      }
+      grid.push(row);
+    }
+    boardEl.innerHTML = '';
+    sizeBoard();
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) makeTileEl(grid[r][c]);
+  }
+
+  function findMatches(){
+    const matched = new Set();
+    const groups = [];
+    const squares = [];
+
+    // 2x2 Square Detection
+    for(let r=0;r<ROWS-1;r++){
+      for(let c=0;c<COLS-1;c++){
+        const t = grid[r][c];
+        if(!t || t.special) continue;
+        const tRight = grid[r][c+1];
+        const tDown = grid[r+1][c];
+        const tDiag = grid[r+1][c+1];
+
+        if(tRight && !tRight.special && tRight.type === t.type &&
+           tDown && !tDown.special && tDown.type === t.type &&
+           tDiag && !tDiag.special && tDiag.type === t.type){
+          squares.push({ cells: [[r,c], [r,c+1], [r+1,c], [r+1,c+1]], type: t.type });
+          matched.add(r+','+c);
+          matched.add(r+','+(c+1));
+          matched.add((r+1)+','+c);
+          matched.add((r+1)+','+(c+1));
+        }
+      }
+    }
+
+    // Horizontal Matches (Creating 4 horizontal fruit gives vertical clearing firework)
+    for(let r=0;r<ROWS;r++){
+      let c = 0;
+      while(c < COLS){
+        const t = grid[r][c];
+        if(!t || t.special){ c++; continue; }
+        let end = c;
+        while(end+1 < COLS && grid[r][end+1] && !grid[r][end+1].special && grid[r][end+1].type === t.type) end++;
+        const len = end - c + 1;
+        if(len >= 3){
+          const cells = [];
+          for(let k=c;k<=end;k++){ cells.push([r,k]); matched.add(r+','+k); }
+          groups.push({ cells, type:t.type, len, fireworkDir:'col' });
+        }
+        c = end + 1;
+      }
+    }
+
+    // Vertical Matches (Creating 4 vertical fruit gives horizontal clearing firework)
+    for(let c=0;c<COLS;c++){
+      let r = 0;
+      while(r < ROWS){
+        const t = grid[r][c];
+        if(!t || t.special){ r++; continue; }
+        let end = r;
+        while(end+1 < ROWS && grid[end+1][c] && !grid[end+1][c].special && grid[end+1][c].type === t.type) end++;
+        const len = end - r + 1;
+        if(len >= 3){
+          const cells = [];
+          for(let k=r;k<=end;k++){ cells.push([k,c]); matched.add(k+','+c); }
+          groups.push({ cells, type:t.type, len, fireworkDir:'row' });
+        }
+        r = end + 1;
+      }
+    }
+    return { matched, groups, squares };
+  }
+
+  function cellKey(r,c){ return r+','+c; }
+
+  async function resolveBoard(swapHintCells){
+    let firstPass = true;
+    while(true){
+      const { matched, groups, squares } = findMatches();
+      if(matched.size === 0) break;
+
+      const fireworkSpawns = new Map();
+      const helicopterSpawns = new Map();
+
+      // Check 2x2 Helicopter creations
+      for(const sq of squares){
+        let spawnCell = sq.cells[0];
+        if(firstPass && swapHintCells){
+          const hit = sq.cells.find(([r,c]) => swapHintCells.some(([hr,hc]) => hr===r && hc===c));
+          if(hit) spawnCell = hit;
+        }
+        helicopterSpawns.set(cellKey(spawnCell[0], spawnCell[1]), sq.type);
+      }
+
+      // Check 4-in-a-row Firework creations
+      for(const g of groups){
+        if(g.len >= 4){
+          let spawnCell = g.cells[Math.floor(g.cells.length/2)];
+          if(firstPass && swapHintCells){
+            const hit = g.cells.find(([r,c]) => swapHintCells.some(([hr,hc]) => hr===r && hc===c));
+            if(hit) spawnCell = hit;
+          }
+          if(!helicopterSpawns.has(cellKey(spawnCell[0], spawnCell[1]))){
+            fireworkSpawns.set(cellKey(spawnCell[0], spawnCell[1]), { type: g.type, dir: g.fireworkDir });
+          }
+        }
+      }
+
+      let clearedInPass = 0;
+      const popPromises = [];
+      for(const key of matched){
+        if(fireworkSpawns.has(key) || helicopterSpawns.has(key)) continue;
+        const [r,c] = key.split(',').map(Number);
+        const tile = grid[r][c];
+        if(!tile) continue;
+        popPromises.push(popTile(tile));
+        grid[r][c] = null;
+        clearedInPass++;
+      }
+      addScore(clearedInPass);
+      await Promise.all(popPromises);
+
+      // Spawn Helicopter
+      for(const [key, type] of helicopterSpawns){
+        const [r,c] = key.split(',').map(Number);
+        const tile = grid[r][c];
+        if(!tile) continue;
+        tile.type = type;
+        tile.special = 'helicopter';
+        refreshTileGraphics(tile);
+        flashMessage('2x2 Square! 🚁');
+      }
+
+      // Spawn Firework
+      for(const [key, info] of fireworkSpawns){
+        const [r,c] = key.split(',').map(Number);
+        const tile = grid[r][c];
+        if(!tile) continue;
+        tile.type = info.type;
+        tile.special = 'firework';
+        tile.fireworkDir = info.dir;
+        refreshTileGraphics(tile);
+        flashMessage(info.dir === 'row' ? 'Row Firework! ↔️' : 'Column Firework! ↕️');
+      }
+
+      await applyGravityAndRefill();
+      firstPass = false;
+      await sleep(80);
+    }
+  }
+
+  function addScore(clearedCount){
+    if(clearedCount <= 0) return;
+    score += clearedCount * 10;
+    scoreNumEl.textContent = score;
+    if(score > best){
+      best = score;
+      bestNumEl.textContent = best;
+      localStorage.setItem('fruitCrushBest', String(best));
+    }
+  }
+
+  function popTile(tile){
+    return new Promise(resolve => {
+      spawnJuiceSplatter(tile);
+      tile.el.classList.add('popping');
+      setTimeout(() => {
+        tile.el.remove();
+        resolve();
+      }, 320);
+    });
+  }
+
+  function spawnJuiceSplatter(tile){
+    const cell = CELL();
+    const hex = FRUITS[tile.type] ? FRUITS[tile.type].hex : '#ffcf5c';
+    const centerX = tile.c * cell + cell/2;
+    const centerY = tile.r * cell + cell/2;
+
+    for(let i = 0; i < 8; i++){
+      const drop = document.createElement('div');
+      drop.className = 'juice-splash';
+      const sz = Math.random() * (cell * 0.35) + 6;
+      drop.style.width = sz + 'px';
+      drop.style.height = sz + 'px';
+      drop.style.background = hex;
+      drop.style.left = centerX + 'px';
+      drop.style.top = centerY + 'px';
+
+      boardEl.appendChild(drop);
+
+      const angle = Math.random() * Math.PI * 2;
+      const dist = (Math.random() * 0.6 + 0.3) * cell;
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist;
+
+      drop.animate([
+        { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.9 },
+        { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(${Math.random()*0.4 + 0.2})`, opacity: 0 }
+      ], {
+        duration: 350 + Math.random() * 200,
+        easing: 'cubic-bezier(0.1, 0.8, 0.3, 1)'
+      }).onfinish = () => drop.remove();
+    }
+  }
+
+  async function applyGravityAndRefill(){
+    for(let c=0;c<COLS;c++){
+      let writeR = ROWS - 1;
+      for(let r=ROWS-1;r>=0;r--){
+        if(grid[r][c]){
+          if(writeR !== r){
+            const tile = grid[r][c];
+            grid[writeR][c] = tile;
+            grid[r][c] = null;
+            tile.r = writeR; tile.c = c;
+            positionTile(tile, writeR, c, true);
+          }
+          writeR--;
+        }
+      }
+      for(let r=writeR;r>=0;r--){
+        const t = { id: uid++, type: randType(), special:null, fireworkDir:null, r, c, el:null };
+        grid[r][c] = t;
+        makeTileEl(t, true); // Create with hidden opacity to prevent (0,0) flicker
+        positionTile(t, r - (writeR - r + 2), c, false);
+        requestAnimationFrame(() => {
+          t.el.classList.remove('spawning');
+          t.el.style.opacity = '1';
+          positionTile(t, r, c, true);
+        });
+      }
+    }
+    await sleep(260);
+  }
+
+  function flashMessage(text){
+    let el = boardEl.querySelector('.msg');
+    if(!el){
+      el = document.createElement('div');
+      el.className = 'msg';
+      boardEl.appendChild(el);
+    }
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 700);
+  }
+
+  async function triggerHelicopter(tile){
+    if(busy) return;
+    busy = true;
+
+    const origR = tile.r, origC = tile.c;
+
+    // Adjacent cells: Top, Bottom, Left, Right
+    const crossCoords = [
+      [origR - 1, origC],
+      [origR + 1, origC],
+      [origR, origC - 1],
+      [origR, origC + 1],
+    ];
+
+    flashMessage('Cross Blast & Copter! 🚁');
+
+    const popPromises = [];
+    let clearedCount = 0;
+
+    // Pop adjacent neighbors first
+    for(const [r, c] of crossCoords){
+      if(inBounds(r, c) && grid[r][c]){
+        const neighbor = grid[r][c];
+        grid[r][c] = null;
+        popPromises.push(popTile(neighbor));
+        clearedCount++;
+      }
+    }
+
+    // Pop helicopter itself
+    grid[origR][origC] = null;
+    popPromises.push(popTile(tile));
+    clearedCount++;
+
+    addScore(clearedCount * 10);
+    await Promise.all(popPromises);
+
+    // Pick a random target fruit for secondary launch
+    const candidates = [];
+    for(let r=0;r<ROWS;r++){
+      for(let c=0;c<COLS;c++){
+        if(grid[r][c]) candidates.push(grid[r][c]);
+      }
+    }
+
+    if(candidates.length > 0){
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+      const cell = CELL();
+      const startX = origC * cell, startY = origR * cell;
+      const endX = target.c * cell, endY = target.r * cell;
+
+      const flying = document.createElement('div');
+      flying.className = 'flying-copter';
+      flying.textContent = '🚁';
+      flying.style.transform = `translate(${startX}px, ${startY}px)`;
+      boardEl.appendChild(flying);
+
+      await new Promise(res => {
+        const anim = flying.animate([
+          { transform: `translate(${startX}px, ${startY}px) scale(1)` },
+          { transform: `translate(${(startX+endX)/2}px, ${(startY+endY)/2 - 40}px) scale(1.4)` },
+          { transform: `translate(${endX}px, ${endY}px) scale(1)` }
+        ], { duration: 550, easing: 'ease-in-out' });
+        anim.onfinish = res;
+      });
+
+      flying.remove();
+
+      if(grid[target.r][target.c] === target){
+        grid[target.r][target.c] = null;
+        await popTile(target);
+        addScore(20);
+      }
+    }
+
+    await applyGravityAndRefill();
+    await resolveBoard(null);
+    busy = false;
+  }
+
+  async function explodeFirework(tile, targetR, targetC){
+    if(busy) return;
+    busy = true;
+    const isRow = tile.fireworkDir === 'row';
+    const cell = CELL();
+
+    const flash = document.createElement('div');
+    flash.className = isRow ? 'rowFlash' : 'colFlash';
+
+    if(isRow){
+      flash.style.top = (targetR * cell) + 'px';
+      flash.style.width = (COLS * cell) + 'px';
+      flashMessage('Row Cleared! ↔️');
+    } else {
+      flash.style.left = (targetC * cell) + 'px';
+      flash.style.height = (ROWS * cell) + 'px';
+      flashMessage('Column Cleared! ↕️');
+    }
+    boardEl.appendChild(flash);
+
+    let cleared = 0;
+    const promises = [];
+
+    if(isRow){
+      for(let c=0;c<COLS;c++){
+        const t = grid[targetR][c];
+        if(!t) continue;
+        promises.push(popTile(t));
+        grid[targetR][c] = null;
+        cleared++;
+      }
+    } else {
+      for(let r=0;r<ROWS;r++){
+        const t = grid[r][targetC];
+        if(!t) continue;
+        promises.push(popTile(t));
+        grid[r][targetC] = null;
+        cleared++;
+      }
+    }
+
+    // Clear tile itself if placed on different axis
+    if(grid[tile.r][tile.c] === tile){
+      promises.push(popTile(tile));
+      grid[tile.r][tile.c] = null;
+    }
+
+    await Promise.all(promises);
+    setTimeout(() => flash.remove(), 400);
+    addScore(cleared * 15);
+
+    await applyGravityAndRefill();
+    await resolveBoard(null);
+    busy = false;
+  }
+
+  function attachDrag(tile){
+    const el = tile.el;
+    el.addEventListener('pointerdown', (e) => onPointerDown(e, tile));
+  }
+
+  function onPointerDown(e, tile){
+    if(busy || moves <= 0) return;
+    e.preventDefault();
+    dragState = {
+      tile,
+      startX: e.clientX,
+      startY: e.clientY,
+      startR: tile.r,
+      startC: tile.c,
+      moved: false,
+      dx: 0,
+      dy: 0
+    };
+    tile.el.classList.add('dragging');
+    tile.el.setPointerCapture(e.pointerId);
+    tile.el.addEventListener('pointermove', onPointerMove);
+    tile.el.addEventListener('pointerup', onPointerUp);
+    tile.el.addEventListener('pointercancel', onPointerUp);
+  }
+
+  function onPointerMove(e){
+    if(!dragState) return;
+    const cell = CELL();
+    let dx = e.clientX - dragState.startX;
+    let dy = e.clientY - dragState.startY;
+    if(Math.hypot(dx,dy) > 6) dragState.moved = true;
+
+    const tile = dragState.tile;
+
+    if(tile.special === 'helicopter'){
+      const clampX = Math.max(-12, Math.min(12, dx));
+      const clampY = Math.max(-12, Math.min(12, dy));
+      const baseX = dragState.startC * cell, baseY = dragState.startR * cell;
+      tile.el.style.transform = `translate(${baseX+clampX}px, ${baseY+clampY}px)`;
+      return;
+    }
+
+    if(tile.special === 'firework'){
+      const isRow = tile.fireworkDir === 'row';
+      if(isRow){
+        dx = 0; // Lock to vertical dragging for row selector
+        dy = Math.max(-tile.r * cell, Math.min((ROWS - 1 - tile.r) * cell, dy));
+      } else {
+        dy = 0; // Lock to horizontal dragging for column selector
+        dx = Math.max(-tile.c * cell, Math.min((COLS - 1 - tile.c) * cell, dx));
+      }
+      const baseX = dragState.startC * cell, baseY = dragState.startR * cell;
+      tile.el.style.transform = `translate(${baseX+dx}px, ${baseY+dy}px)`;
+      dragState.dx = dx; dragState.dy = dy;
+      return;
+    }
+
+    if(Math.abs(dx) > Math.abs(dy)){
+      dy = 0;
+      dx = Math.max(-cell, Math.min(cell, dx));
+    } else {
+      dx = 0;
+      dy = Math.max(-cell, Math.min(cell, dy));
+    }
+    const baseX = dragState.startC * cell, baseY = dragState.startR * cell;
+    tile.el.style.transform = `translate(${baseX+dx}px, ${baseY+dy}px)`;
+    dragState.dx = dx; dragState.dy = dy;
+  }
+
+  async function onPointerUp(e){
+    if(!dragState) return;
+    const tile = dragState.tile;
+    tile.el.classList.remove('dragging');
+    tile.el.removeEventListener('pointermove', onPointerMove);
+    tile.el.removeEventListener('pointerup', onPointerUp);
+    tile.el.removeEventListener('pointercancel', onPointerUp);
+
+    const ds = dragState;
+    dragState = null;
+
+    if(tile.special === 'helicopter'){
+      positionTile(tile, tile.r, tile.c, true);
+      useMove();
+      await triggerHelicopter(tile);
+      return;
+    }
+
+    if(tile.special === 'firework'){
+      const cell = CELL();
+      const targetR = Math.max(0, Math.min(ROWS - 1, tile.r + Math.round(ds.dy / cell)));
+      const targetC = Math.max(0, Math.min(COLS - 1, tile.c + Math.round(ds.dx / cell)));
+      positionTile(tile, tile.r, tile.c, true);
+      useMove();
+      await explodeFirework(tile, targetR, targetC);
+      return;
+    }
+
+    if(!ds.moved){
+      positionTile(tile, tile.r, tile.c, true);
+      return;
+    }
+
+    const cell = CELL();
+    const dx = ds.dx || 0, dy = ds.dy || 0;
+    let dr = 0, dc = 0;
+    const threshold = cell * 0.4;
+    if(Math.abs(dx) > threshold) dc = dx > 0 ? 1 : -1;
+    else if(Math.abs(dy) > threshold) dr = dy > 0 ? 1 : -1;
+
+    if(dr === 0 && dc === 0){
+      positionTile(tile, tile.r, tile.c, true);
+      return;
+    }
+
+    const r2 = tile.r + dr, c2 = tile.c + dc;
+    if(!inBounds(r2,c2)){
+      positionTile(tile, tile.r, tile.c, true);
+      return;
+    }
+    await trySwap(tile.r, tile.c, r2, c2);
+  }
+
+  async function trySwap(r1,c1,r2,c2){
+    if(busy) return;
+    busy = true;
+    const a = grid[r1][c1], b = grid[r2][c2];
+    if(!a || !b){ busy = false; return; }
+
+    if(a.special || b.special){
+      positionTile(a, r1, c1, true);
+      positionTile(b, r2, c2, true);
+      await sleep(120);
+
+      const specialTile = a.special ? a : b;
+      useMove();
+      if(specialTile.special === 'helicopter') await triggerHelicopter(specialTile);
+      else if(specialTile.special === 'firework') await explodeFirework(specialTile, specialTile.r, specialTile.c);
+      return;
+    }
+
+    swapGridCells(r1,c1,r2,c2);
+    positionTile(a, a.r, a.c, true);
+    positionTile(b, b.r, b.c, true);
+    await sleep(220);
+
+    const { matched } = findMatches();
+    if(matched.size === 0){
+      swapGridCells(r1,c1,r2,c2); // Cleanly revert swap
+      positionTile(a, a.r, a.c, true);
+      positionTile(b, b.r, b.c, true);
+      await sleep(220);
+      busy = false;
+      return;
+    }
+
+    useMove();
+    await resolveBoard([[a.r, a.c], [b.r, b.c]].filter(Boolean));
+    busy = false;
+  }
+
+  function swapGridCells(r1,c1,r2,c2){
+    const a = grid[r1][c1], b = grid[r2][c2];
+    grid[r1][c1] = b; grid[r2][c2] = a;
+    a.r = r2; a.c = c2;
+    b.r = r1; b.c = c1;
+  }
+
+  restartBtn.addEventListener('click', () => {
+    if(busy) return;
+    score = 0;
+    scoreNumEl.textContent = '0';
+    buildInitialGrid();
+  });
+
+  window.addEventListener('resize', () => {
+    sizeBoard();
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      const t = grid[r][c];
+      if(t) positionTile(t, t.r, t.c, false);
+    }
+  });
+
+  buildInitialGrid();
+})();
+</script>
+</body>
+</html>
