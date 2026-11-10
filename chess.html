@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chess vs AI - Promotion UI + Faster AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<style>
+  :root {
+    /* Board square size scales with the viewport but never gets bigger than 60px
+       or smaller than 34px, so it always fits narrow phone screens like a Galaxy A15. */
+    --sq: clamp(34px, 11.5vw, 60px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #222;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    touch-action: manipulation; /* removes the double-tap-to-zoom delay on tap */
+  }
+  h1 { margin: 10px 0; font-size: clamp(1.1em, 5vw, 1.6em); text-align: center; padding: 0 10px; }
+  #menu {
+    margin: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    max-width: 95vw;
+  }
+  #menu select, #menu button {
+    font-size: 1.05em;
+    padding: 8px 12px;
+    margin: 0;
+    min-height: 42px; /* comfortable touch target */
+  }
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, var(--sq));
+    grid-template-rows: repeat(8, var(--sq));
+    border: 4px solid #fff;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    user-select: none;
+    touch-action: manipulation;
+    max-width: 96vw;
+  }
+  .square {
+    width: var(--sq);
+    height: var(--sq);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(var(--sq) * 0.72);
+    line-height: 1;
+    cursor: pointer;
+  }
+  .light { background: #f0d9b5; color: #000; }
+  .dark  { background: #b58863; color: #000; }
+  .selected { box-shadow: inset 0 0 0 5px yellow; }
+  .possible { background: rgba(0,255,0,0.6) !important; }
+  #status { margin: 15px 10px; font-size: 1.05em; text-align: center; }
+  /* promotion modal */
+  #promoModal {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    background: #333;
+    border: 3px solid #fff;
+    padding: 12px;
+    display: none;
+    z-index: 50;
+    border-radius: 8px;
+    max-width: 92vw;
+  }
+  #promoModal .row { display:flex; gap:8px; flex-wrap: wrap; justify-content: center; }
+  .promoBtn {
+    font-size: clamp(22px, 7vw, 28px);
+    padding: 10px 14px;
+    cursor: pointer;
+    background: #222;
+    color: #fff;
+    border: 2px solid #fff;
+    border-radius: 6px;
+    min-width: 48px;
+    min-height: 48px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Chess vs Strong AI</h1>
+<div id="menu">
+  <select id="variant">
+    <option value="standard">Standard Chess</option>
+    <option value="960">Chess960 (Fischer Random)</option>
+  </select>
+  <select id="difficulty">
+    <option value="6">Beginner</option>
+    <option value="10" selected>Intermediate</option>
+    <option value="14">Advanced</option>
+  </select>
+  <button id="newGame">New Game</button>
+</div>
+
+<div id="board" aria-label="Chess board"></div>
+<div id="status">Click "New Game" to start</div>
+
+<!-- Promotion chooser modal -->
+<div id="promoModal" role="dialog" aria-modal="true" aria-label="Promotion chooser">
+  <div style="margin-bottom:8px">Choose promotion:</div>
+  <div class="row">
+    <button class="promoBtn" data-piece="q">♕</button>
+    <button class="promoBtn" data-piece="r">♖</button>
+    <button class="promoBtn" data-piece="b">♗</button>
+    <button class="promoBtn" data-piece="n">♘</button>
+  </div>
+</div>
+
+<script>
+/* -------- constants & state -------- */
+const pieceValue = { p:100, n:320, b:330, r:500, q:900, k:20000 };
+const pieceChars = { K:"♔", Q:"♕", R:"♖", B:"♗", N:"♘", P:"♙",
+                     k:"♚", q:"♛", r:"♜", b:"♝", n:"♞", p:"♟" };
+
+let board = [];
+let turn = 'w';
+let selected = null;
+let possibleMoves = [];
+let searchDepth = 10;
+
+const boardDiv = document.getElementById('board');
+const statusDiv = document.getElementById('status');
+
+let pendingPromotion = null; // {from:{x,y}, to:{x,y}, color:'w'|'b'}
+let promoModal = document.getElementById('promoModal');
+
+/* iterative deepening / time control globals */
+let searchTimeoutMs = 800; // default budget, tuned per difficulty
+let stopSearch = false;
+let searchEndTime = 0;
+
+/* -------- helpers -------- */
+const inBounds = (x,y) => x>=0 && x<8 && y>=0 && y<8;
+const isUpper = c => c !== ' ' && c === c.toUpperCase();
+const isLower = c => c !== ' ' && c === c.toLowerCase();
+
+function cloneBoard() { return board.map(r => r.slice()); }
+
+/* -------- setup -------- */
+function newGame() {
+  const variant = document.getElementById('variant').value;
+  searchDepth = parseInt(document.getElementById('difficulty').value, 10);
+  // set a simple time budget based on difficulty
+  searchTimeoutMs = 300 + (searchDepth * 120);
+
+  if (variant === '960') board = generateChess960();
+  else board = standardSetup();
+
+  turn = 'w';
+  selected = null;
+  possibleMoves = [];
+  pendingPromotion = null;
+  render();
+  statusDiv.textContent = "White to move";
+}
+
+function standardSetup() {
+  return [
+    ['r','n','b','q','k','b','n','r'],
+    ['p','p','p','p','p','p','p','p'],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    ['P','P','P','P','P','P','P','P'],
+    ['R','N','B','Q','K','B','N','R']
+  ];
+}
+
+/* Chess960 generator (basic rules) */
+function generateChess960() {
+  const back = Array(8).fill(null);
+  const darkSquares = [0,2,4,6];
+  const lightSquares = [1,3,5,7];
+  const b1 = darkSquares[Math.floor(Math.random()*darkSquares.length)];
+  const b2 = lightSquares[Math.floor(Math.random()*lightSquares.length)];
+  back[b1] = 'B'; back[b2] = 'B';
+  const empties = () => back.map((v,i)=>v===null?i:null).filter(v=>v!==null);
+  const qPos = empties()[Math.floor(Math.random()*empties().length)];
+  back[qPos] = 'Q';
+  let e = empties();
+  const n1 = e[Math.floor(Math.random()*e.length)]; back[n1] = 'N';
+  e = empties(); const n2 = e[Math.floor(Math.random()*e.length)]; back[n2] = 'N';
+  e = empties(); e.sort((a,b)=>a-b);
+  // place rook, king, rook in the remaining 3 squares
+  if (e.length !== 3) return standardSetup();
+  back[e[0]]='R'; back[e[1]]='K'; back[e[2]]='R';
+  const b = [
+    back.map(c => c ? c.toLowerCase() : ' '),
+    ['p','p','p','p','p','p','p','p'],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    [' ',' ',' ',' ',' ',' ',' ',' '],
+    ['P','P','P','P','P','P','P','P'],
+    back.map(c => c ? c : ' ')
+  ];
+  return b;
+}
+
+/* -------- render & UI -------- */
+function render() {
+  boardDiv.innerHTML = '';
+  for (let y=0; y<8; y++) {
+    for (let x=0; x<8; x++) {
+      const sq = document.createElement('div');
+      sq.className = `square ${(x+y)%2 ? 'dark' : 'light'}`;
+      const p = board[y][x];
+      if (p !== ' ') sq.innerHTML = pieceChars[p] || p;
+      if (selected && selected.x===x && selected.y===y) sq.classList.add('selected');
+      if (possibleMoves.some(m=>m.x===x && m.y===y)) sq.classList.add('possible');
+      sq.onclick = () => handleClick(x,y);
+      boardDiv.appendChild(sq);
+    }
+  }
+}
+
+/* -------- move generation -------- */
+function generatePseudoLegalMoves(x,y) {
+  const moves = [];
+  if (!inBounds(x,y)) return moves;
+  const piece = board[y][x];
+  if (piece === ' ') return moves;
+  const color = isUpper(piece) ? 'w' : 'b';
+  const ownIsUpper = isUpper(piece);
+  const addIf = (nx, ny, promotion=null) => {
+    if (!inBounds(nx,ny)) return;
+    const target = board[ny][nx];
+    if (target !== ' ' && (isUpper(target) === ownIsUpper)) return;
+    moves.push({x:nx, y:ny, promotion});
+  };
+  const type = piece.toLowerCase();
+  if (type === 'p') {
+    const dir = (color === 'w') ? -1 : 1;
+    const startRow = (color === 'w') ? 6 : 1;
+    const promotionRow = (color === 'w') ? 0 : 7;
+    const oneY = y + dir;
+    if (inBounds(x, oneY) && board[oneY][x] === ' ') {
+      if (oneY === promotionRow) ['q','r','b','n'].forEach(p => addIf(x, oneY, p));
+      else addIf(x, oneY);
+      const twoY = y + 2*dir;
+      if (y === startRow && inBounds(x,twoY) && board[twoY][x] === ' ' ) addIf(x, twoY);
+    }
+    for (const dx of [-1,1]) {
+      const cx = x + dx; const cy = y + dir;
+      if (!inBounds(cx,cy)) continue;
+      const target = board[cy][cx];
+      if (target !== ' ' && (isUpper(target) !== ownIsUpper)) {
+        if (cy === promotionRow) ['q','r','b','n'].forEach(p => addIf(cx,cy,p));
+        else addIf(cx,cy);
+      }
+    }
+  } else if (type === 'n') {
+    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dx,dy])=> addIf(x+dx,y+dy));
+  } else if (type === 'b' || type === 'r' || type === 'q') {
+    let directions = [];
+    if (type === 'b' || type === 'q') directions.push([-1,-1],[-1,1],[1,-1],[1,1]);
+    if (type === 'r' || type === 'q') directions.push([-1,0],[1,0],[0,-1],[0,1]);
+    for (const [dx,dy] of directions) {
+      for (let s=1; s<8; s++) {
+        const nx = x + dx*s, ny = y + dy*s;
+        if (!inBounds(nx,ny)) break;
+        const target = board[ny][nx];
+        if (target === ' ') addIf(nx,ny);
+        else { if (isUpper(target) !== ownIsUpper) addIf(nx,ny); break; }
+      }
+    }
+  } else if (type === 'k') {
+    for (let dx=-1; dx<=1; dx++) for (let dy=-1; dy<=1; dy++) if(!(dx===0&&dy===0)) addIf(x+dx,y+dy);
+    if (color==='w' && y===7 && x===4) {
+      if (board[7][0] === 'R' && board[7][1]===' ' && board[7][2]===' ' && board[7][3]===' ') addIf(2,7);
+      if (board[7][7] === 'R' && board[7][6]===' ' && board[7][5]===' ') addIf(6,7);
+    }
+    if (color==='b' && y===0 && x===4) {
+      if (board[0][0] === 'r' && board[0][1]===' ' && board[0][2]===' ' && board[0][3]===' ') addIf(2,0);
+      if (board[0][7] === 'r' && board[0][6]===' ' && board[0][5]===' ') addIf(6,0);
+    }
+  }
+  return moves;
+}
+
+function generateLegalMoves(x,y) {
+  const piece = board[y][x];
+  if (piece === ' ') return [];
+  const color = isUpper(piece) ? 'w' : 'b';
+  const pseudo = generatePseudoLegalMoves(x,y);
+  const legal = [];
+  for (const m of pseudo) {
+    const backupFrom = board[y][x], backupTo = board[m.y][m.x];
+    board[m.y][m.x] = board[y][x];
+    board[y][x] = ' ';
+    if (m.promotion && board[m.y][m.x].toLowerCase() === 'p') {
+      board[m.y][m.x] = (color==='w' ? m.promotion.toUpperCase() : m.promotion.toLowerCase());
+    }
+    const stillSafe = !isKingAttacked(color);
+    board[y][x] = backupFrom;
+    board[m.y][m.x] = backupTo;
+    if (stillSafe) legal.push(m);
+  }
+  return legal;
+}
+
+function isKingAttacked(color) {
+  const kingChar = (color === 'w') ? 'K' : 'k';
+  let kx=-1, ky=-1;
+  for (let y=0;y<8;y++) for (let x=0;x<8;x++) if (board[y][x] === kingChar) { kx = x; ky = y; }
+  if (kx === -1) return true;
+  for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
+    const p = board[y][x]; if (p === ' ') continue;
+    const pColor = isUpper(p) ? 'w' : 'b';
+    if (pColor === color) continue;
+    const pseudo = generatePseudoLegalMoves(x,y);
+    if (pseudo.some(m => m.x===kx && m.y===ky)) return true;
+  }
+  return false;
+}
+
+/* -------- move execution -------- */
+function makeMove(x1,y1,x2,y2,promotion=null) {
+  let piece = board[y1][x1];
+  if (promotion && piece.toLowerCase()==='p') piece = isUpper(board[y1][x1]) ? promotion.toUpperCase() : promotion.toLowerCase();
+  board[y2][x2] = piece;
+  board[y1][x1] = ' ';
+  if (piece.toLowerCase()==='k' && Math.abs(x2-x1)===2) {
+    const rookX = x2 > x1 ? 7 : 0;
+    const rookTo = x2 > x1 ? x2-1 : x2+1;
+    board[y2][rookTo] = board[y2][rookX];
+    board[y2][rookX] = ' ';
+  }
+  turn = turn==='w' ? 'b' : 'w';
+}
+
+/* -------- UI actions & promotion chooser -------- */
+function handleClick(x,y) {
+  if (pendingPromotion) { /* ignore clicks while modal shown */ return; }
+
+  if (selected) {
+    const move = possibleMoves.find(m=>m.x===x && m.y===y);
+    if (move) {
+      // need to prompt if promotion
+      const piece = board[selected.y][selected.x];
+      if (move.promotion && piece.toLowerCase()==='p' && (turn==='w' ? isUpper(piece) : isLower(piece))) {
+        // show chooser
+        pendingPromotion = { from: {x:selected.x, y:selected.y}, to: {x:move.x, y:move.y}, color: (isUpper(piece)?'w':'b') };
+        showPromotionModal();
+      } else {
+        makeMove(selected.x, selected.y, x, y, move.promotion||null);
+        selected = null; possibleMoves = [];
+        render();
+        if (!isGameOver()) setTimeout(aiMove, 80);
+      }
+      return;
+    }
+    selected = null; possibleMoves = []; render(); return;
+  }
+
+  const piece = board[y][x];
+  if (piece === ' ' || (turn==='w' ? isLower(piece) : isUpper(piece))) { render(); return; }
+
+  selected = {x,y};
+  possibleMoves = generateLegalMoves(x,y);
+  render();
+}
+
+/* Promotion modal handling */
+function showPromotionModal() {
+  promoModal.style.display = 'block';
+}
+function hidePromotionModal() {
+  promoModal.style.display = 'none';
+  pendingPromotion = null;
+}
+promoModal.querySelectorAll('.promoBtn').forEach(btn => {
+  btn.onclick = () => {
+    const p = btn.dataset.piece; // 'q','r','b','n'
+    if (!pendingPromotion) { hidePromotionModal(); return; }
+    makeMove(pendingPromotion.from.x, pendingPromotion.from.y, pendingPromotion.to.x, pendingPromotion.to.y, p);
+    hidePromotionModal();
+    selected = null; possibleMoves = []; render();
+    if (!isGameOver()) setTimeout(aiMove, 80);
+  };
+});
+
+/* -------- evaluation & AI (negamax + alpha-beta) with iterative deepening & move ordering -------- */
+function evaluate() {
+  let score = 0;
+  for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
+    const p = board[y][x];
+    if (p !== ' ') {
+      const val = pieceValue[p.toLowerCase()] || 0;
+      score += (isUpper(p) ? val : -val);
+    }
+  }
+  return score;
+}
+
+/* move ordering: prefer captures with high captured value, then quiet moves */
+function scoreMove(fromX, fromY, m) {
+  const target = board[m.y][m.x];
+  let s = 0;
+  if (target !== ' ') s += (pieceValue[target.toLowerCase()] || 0) * 100; // big weight
+  // small preference for promotions
+  if (m.promotion) s += 50;
+  return s;
+}
+
+/* negamax with alpha-beta and time-check; color param 'w' or 'b' */
+function negamax(depth, alpha, beta, color) {
+  // timer check
+  if (stopSearch && Date.now() > searchEndTime) { stopSearch = true; return 0; }
+  if (depth === 0) return (color === 'w' ? 1 : -1) * evaluate();
+
+  let best = -999999;
+  // iterate pieces of side 'color'
+  for (let y=0;y<8;y++) {
+    for (let x=0;x<8;x++) {
+      const p = board[y][x];
+      if (p === ' ') continue;
+      const pColor = isUpper(p) ? 'w' : 'b';
+      if (pColor !== color) continue;
+      let moves = generateLegalMoves(x,y);
+      // order moves
+      moves.sort((a,b) => scoreMove(x,y,b) - scoreMove(x,y,a));
+      for (const m of moves) {
+        if (stopSearch && Date.now() > searchEndTime) { stopSearch = true; return 0; }
+        const backupFrom = board[y][x], backupTo = board[m.y][m.x];
+        board[m.y][m.x] = board[y][x];
+        board[y][x] = ' ';
+        if (m.promotion && board[m.y][m.x].toLowerCase()==='p') {
+          board[m.y][m.x] = (pColor==='w' ? m.promotion.toUpperCase() : m.promotion.toLowerCase());
+        }
+        const score = -negamax(depth-1, -beta, -alpha, color === 'w' ? 'b' : 'w');
+        board[y][x] = backupFrom; board[m.y][m.x] = backupTo;
+        if (score > best) best = score;
+        alpha = Math.max(alpha, score);
+        if (alpha >= beta) return best;
+      }
+    }
+  }
+  return best;
+}
+
+/* iterative deepening driver; picks best move found within time */
+function aiMove() {
+  if (turn !== 'b') return;
+  // top-level: collect all legal black moves and use iterative deepening to choose best
+  let allMoves = [];
+  for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
+    const p = board[y][x];
+    if (p === ' ' || !isLower(p)) continue;
+    const moves = generateLegalMoves(x,y);
+    moves.forEach(m => allMoves.push({from:{x,y}, to:m, piece:p}));
+  }
+  if (allMoves.length === 0) { checkGameOver(); return; }
+
+  // order by quick heuristic first (captures and promotions)
+  allMoves.sort((A,B) => {
+    const sa = scoreMove(A.from.x,A.from.y,A.to);
+    const sb = scoreMove(B.from.x,B.from.y,B.to);
+    return sb - sa;
+  });
+
+  let bestMove = null;
+  let bestScore = -999999;
+
+  // iterative deepening
+  const maxDepth = searchDepth;
+  const startTime = Date.now();
+  searchEndTime = startTime + searchTimeoutMs;
+  stopSearch = false;
+  let lastCompletedBest = null;
+
+  for (let depth=1; depth<=maxDepth; depth++) {
+    if (Date.now() > searchEndTime) break;
+    let localBest = null, localBestScore = -999999;
+
+    // search each candidate move using negamax with depth-1
+    for (const mv of allMoves) {
+      if (Date.now() > searchEndTime) { stopSearch = true; break; }
+      const fx = mv.from.x, fy = mv.from.y;
+      const tx = mv.to.x, ty = mv.to.y;
+      const backupFrom = board[fy][fx], backupTo = board[ty][tx];
+      board[ty][tx] = board[fy][fx];
+      board[fy][fx] = ' ';
+      // simulate promotion (choose queen during search, but it's fine)
+      if (mv.to.promotion && board[ty][tx].toLowerCase()==='p') {
+        board[ty][tx] = mv.piece.toLowerCase() === mv.piece ? mv.to.promotion.toLowerCase() : mv.to.promotion.toUpperCase();
+      }
+      const score = -negamax(depth-1, -1000000, 1000000, 'w');
+      board[fy][fx] = backupFrom; board[ty][tx] = backupTo;
+      if (stopSearch) break;
+      if (score > localBestScore) { localBestScore = score; localBest = mv; }
+    }
+
+    if (!stopSearch && localBest) {
+      lastCompletedBest = { move: localBest, score: localBestScore, depth };
+      bestMove = localBest;
+      bestScore = localBestScore;
+      // continue to next depth until time runs out
+    } else {
+      break;
+    }
+  }
+
+  // if iterative deepening produced a lastCompletedBest use it, else fall back to quick pick
+  const chosen = lastCompletedBest ? lastCompletedBest.move : (allMoves[0] || null);
+  if (chosen) {
+    // handle promotion param: if move indicates promotion, pick queen by default for AI
+    const promo = chosen.to.promotion ? 'q' : null;
+    makeMove(chosen.from.x, chosen.from.y, chosen.to.x, chosen.to.y, promo);
+    render();
+  }
+  checkGameOver();
+}
+
+/* -------- game over & status -------- */
+function isGameOver() {
+  const moves = [];
+  for (let y=0;y<8;y++) for (let x=0;x<8;x++) {
+    const p = board[y][x];
+    if (p !== ' ' && (turn==='w' ? isUpper(p) : isLower(p))) moves.push(...generateLegalMoves(x,y));
+  }
+  if (moves.length === 0) {
+    if (isKingAttacked(turn)) statusDiv.textContent = (turn==='w' ? "White" : "Black") + " is checkmated! " + (turn==='w' ? "Black" : "White") + " wins!";
+    else statusDiv.textContent = "Stalemate!";
+    return true;
+  }
+  return false;
+}
+function checkGameOver() { if (isGameOver()) return; statusDiv.textContent = (turn==='w' ? "White" : "Black (AI)") + " to move"; }
+
+/* -------- init -------- */
+document.getElementById('newGame').onclick = newGame;
+newGame(); // start immediately
+</script>
+</body>
+</html>
