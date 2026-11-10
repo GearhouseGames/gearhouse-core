@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GearhouseGames</title>
     <style>
-        /* Base Roblox App Theme */
         :root {
             --bg-base: #111214;
             --bg-surface: #232527;
@@ -32,7 +31,6 @@
             overflow: hidden;
         }
 
-        /* Sidebar Navigation */
         .sidebar {
             width: var(--sidebar-width);
             background-color: var(--bg-surface);
@@ -69,10 +67,9 @@
             background-color: var(--bg-hover);
             color: var(--text-main);
             border-left: 4px solid var(--text-main);
-            padding-left: 16px; /* Adjust for border */
+            padding-left: 16px;
         }
 
-        /* Main Content Area */
         .main-content {
             flex: 1;
             display: flex;
@@ -80,7 +77,6 @@
             overflow-y: auto;
         }
 
-        /* Top Header */
         .top-header {
             height: 60px;
             background-color: var(--bg-surface);
@@ -102,11 +98,6 @@
             outline: none;
         }
 
-        .search-bar:focus {
-            border-color: var(--text-muted);
-        }
-
-        /* Game Grid Container */
         .content-wrapper {
             padding: 30px;
             max-width: 1600px;
@@ -118,9 +109,6 @@
             font-size: 24px;
             font-weight: 700;
             margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
 
         .game-grid {
@@ -130,7 +118,6 @@
             margin-bottom: 40px;
         }
 
-        /* Game Card (Experience Thumbnail) */
         .game-card {
             background-color: var(--bg-surface);
             border-radius: 12px;
@@ -157,7 +144,6 @@
             justify-content: center;
         }
 
-        /* Play Button Overlay on Hover */
         .play-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -191,7 +177,6 @@
             background-color: var(--accent-green-hover);
         }
 
-        /* Game Metadata */
         .game-info {
             padding: 15px;
         }
@@ -212,102 +197,89 @@
             display: flex;
             gap: 15px;
         }
-        
-        .stat span {
-            font-weight: 600;
-        }
-        
-        /* Thumbnail placeholders for aesthetic */
-        .thumb-chess { background: linear-gradient(135deg, #4b6cb7 0%, #182848 100%); }
-        .thumb-3d { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-        .thumb-book { background: linear-gradient(135deg, #870000 0%, #190a05 100%); }
-
     </style>
 </head>
 <body>
 
-    <!-- Sidebar Navigation -->
     <nav class="sidebar">
-        <div class="sidebar-logo">
-            ⚙️ Gearhouse
-        </div>
+        <div class="sidebar-logo">⚙️ Gearhouse</div>
         <a href="#" class="nav-link active">🏠 Home</a>
-        <a href="#" class="nav-link">🎮 Discover</a>
-        <a href="#" class="nav-link">🔨 Create</a>
-        <div style="flex-grow: 1;"></div>
-        <a href="#" class="nav-link">⚙️ Settings</a>
+        <a href="#" class="nav-link">🎮 Experiences</a>
     </nav>
 
-    <!-- Main Content Area -->
     <main class="main-content">
-        <!-- Top Search/Profile Header -->
         <header class="top-header">
             <input type="text" class="search-bar" placeholder="Search for experiences...">
         </header>
 
-        <!-- Game Grids -->
         <div class="content-wrapper">
+            <div class="section-title">All Games</div>
             
-            <div class="section-title">Continue Playing</div>
-            <div class="game-grid">
-                
-                <!-- Chess Card -->
-                <a href="chess.html" class="game-card">
-                    <div class="thumbnail-container thumb-chess">
-                        <div class="play-overlay">
-                            <div class="play-btn">▶</div>
-                        </div>
-                    </div>
-                    <div class="game-info">
-                        <div class="game-title">Chess vs AI</div>
-                        <div class="game-stats">
-                            <div class="stat">👍 <span>100%</span></div>
-                            <div class="stat">👤 <span>Singleplayer</span></div>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- 3D Action Game Card -->
-                <a href="action-game.html" class="game-card">
-                    <div class="thumbnail-container thumb-3d">
-                        <div class="play-overlay">
-                            <div class="play-btn">▶</div>
-                        </div>
-                    </div>
-                    <div class="game-info">
-                        <div class="game-title">Terrain Map Editor & Arena</div>
-                        <div class="game-stats">
-                            <div class="stat">👍 <span>98%</span></div>
-                            <div class="stat">🔨 <span>Dev Build</span></div>
-                        </div>
-                    </div>
-                </a>
-
+            <!-- This grid will be populated automatically by JavaScript -->
+            <div class="game-grid" id="auto-game-grid">
+                <p style="color: var(--text-muted);">Loading library...</p>
             </div>
-
-            <div class="section-title">Recommended for You</div>
-            <div class="game-grid">
-
-                <!-- Steel and Silence Placeholder -->
-                <a href="#" class="game-card">
-                    <div class="thumbnail-container thumb-book">
-                        <div class="play-overlay">
-                            <div class="play-btn">▶</div>
-                        </div>
-                    </div>
-                    <div class="game-info">
-                        <div class="game-title">Steel and Silence: Aegis</div>
-                        <div class="game-stats">
-                            <div class="stat">👍 <span>95%</span></div>
-                            <div class="stat">📖 <span>Story Mode</span></div>
-                        </div>
-                    </div>
-                </a>
-
-            </div>
-
         </div>
     </main>
+
+    <script>
+        async function loadGamesFromGitHub() {
+            const grid = document.getElementById('auto-game-grid');
+            
+            try {
+                // Fetches the file list directly from your public GitHub repository
+                const response = await fetch('https://api.github.com/repos/GearhouseGames/gearhouse-core/contents/');
+                const files = await response.json();
+                
+                grid.innerHTML = ''; // Clear the "Loading library..." text
+                
+                files.forEach(file => {
+                    // Only look for HTML files, and ignore index.html (the menu itself)
+                    if (file.name.endsWith('.html') && file.name !== 'index.html') {
+                        
+                        // Clean up the file name for the title (e.g., "my-game.html" -> "My Game")
+                        let cleanName = file.name.replace('.html', '');
+                        cleanName = cleanName.replace(/-/g, ' ').replace(/_/g, ' ');
+                        cleanName = cleanName.replace(/\b\w/g, char => char.toUpperCase());
+
+                        // Generate a random gradient color based on the file name for aesthetic variety
+                        const colorCode = Array.from(cleanName).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                        const hue = colorCode % 360;
+
+                        // Create the HTML for the game card
+                        const cardHtml = `
+                            <a href="${file.name}" class="game-card">
+                                <div class="thumbnail-container" style="background: linear-gradient(135deg, hsl(${hue}, 40%, 30%) 0%, hsl(${hue}, 60%, 15%) 100%);">
+                                    <div class="play-overlay">
+                                        <div class="play-btn">▶</div>
+                                    </div>
+                                </div>
+                                <div class="game-info">
+                                    <div class="game-title">${cleanName}</div>
+                                    <div class="game-stats">
+                                        <div class="stat">▶️ <span>Play</span></div>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                        
+                        grid.innerHTML += cardHtml;
+                    }
+                });
+
+                if (grid.innerHTML === '') {
+                    grid.innerHTML = '<p style="color: var(--text-muted);">No games found. Upload an HTML file to your repository.</p>';
+                }
+
+            } catch (error) {
+                console.error("Error loading games:", error);
+                grid.innerHTML = '<p style="color: #ff5555;">Could not connect to GitHub to load games.</p>';
+            }
+        }
+
+        // Run the script as soon as the page loads
+        document.addEventListener('DOMContentLoaded', loadGamesFromGitHub);
+    </script>
 
 </body>
 </html>
