@@ -236,7 +236,7 @@
                 
                 files.forEach(file => {
                     // Only look for HTML files, and ignore index.html (the menu itself)
-                    if (file.name.endsWith('.html') && file.name !== 'index.html') {
+                    if (file.name.endsWith('.html') && file.name !== 'index.html' && !file.name.toLowerCase().startsWith('google')) {
                         
                         // Clean up the file name for the title (e.g., "my-game.html" -> "My Game")
                         let cleanName = file.name.replace('.html', '');
