@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Cyber Pinball Arcade</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Orbitron:wght@600;800;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --neon-cyan: #06b6d4;
+            --neon-pink: #f43f5e;
+            --neon-purple: #a855f7;
+            --neon-amber: #f59e0b;
+            --neon-emerald: #10b981;
+            --bg-cabinet: #050711;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-cabinet);
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(168, 85, 247, 0.14) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.14) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(244, 63, 94, 0.08) 0%, transparent 65%);
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .font-arcade {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+
+        .font-dmd {
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* Dot Matrix LED Banner Effect */
+        .dmd-screen {
+            background-color: #090d16;
+            background-image: radial-gradient(rgba(245, 158, 11, 0.12) 1px, transparent 0);
+            background-size: 4px 4px;
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.9), 0 0 12px rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+
+        /* Pinball Cabinet Frame */
+        #cabinet-wrapper {
+            box-shadow:
+                0 0 40px rgba(0, 0, 0, 0.95),
+                0 0 25px rgba(6, 182, 212, 0.25),
+                inset 0 0 15px rgba(168, 85, 247, 0.2);
+            border: 2px solid #1e293b;
+            background-color: #070b18;
+        }
+
+        /* Arcade Buttons */
+        .btn-arcade {
+            position: relative;
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-arcade:active, .btn-arcade.pressed {
+            transform: translateY(2px) scale(0.96);
+        }
+
+        .btn-neon-cyan {
+            background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+            box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+            color: #041019;
+        }
+        .btn-neon-cyan:hover {
+            background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+            box-shadow: 0 6px 25px -2px rgba(6, 182, 212, 0.75);
+        }
+
+        .btn-flipper-left {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1.5px solid rgba(6, 182, 212, 0.55);
+            box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);
+        }
+        .btn-flipper-left.pressed {
+            background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+            color: #041019;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.7);
+        }
+
+        .btn-flipper-right {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.22) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border: 1.5px solid rgba(244, 63, 94, 0.55);
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.2);
+        }
+        .btn-flipper-right.pressed {
+            background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.7);
+        }
+
+        .btn-launch {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 1.5px solid rgba(245, 158, 11, 0.65);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
+        }
+        .btn-launch.pressed {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #090d16;
+            box-shadow: 0 0 22px rgba(245, 158, 11, 0.8);
+        }
+
+        @keyframes neonGlowPulse {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.65)); }
+            50% { filter: drop-shadow(0 0 18px rgba(244, 63, 94, 0.85)); }
+        }
+        .title-glow {
+            animation: neonGlowPulse 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 h-screen w-screen flex flex-col items-center justify-between p-1.5 sm:p-3 select-none overflow-hidden">
+
+    <!-- ================= TOP BACKGLASS HUD & DMD MATRIX ================= -->
+    <header class="w-full max-w-2xl bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl px-3 py-1.5 sm:py-2 shadow-xl z-20 shrink-0">
+        <div class="flex items-center justify-between gap-2">
+            <!-- Brand & Ball Info -->
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-inner">
+                    <i class="fa-solid fa-bolt-lightning text-sm sm:text-base"></i>
+                </div>
+                <div>
+                    <h1 class="font-arcade font-bold text-xs sm:text-base tracking-wider text-white leading-none">
+                        CYBER<span class="text-cyan-400">PINBALL</span>
+                    </h1>
+                    <div class="flex items-center space-x-1.5 mt-0.5">
+                        <span id="hud-ball" class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 bg-slate-800 text-cyan-300 border border-cyan-800/50 rounded">BALL 1 / 3</span>
+                        <span id="hud-mult" class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 bg-amber-950 text-amber-400 border border-amber-700/50 rounded">1X MULT</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center LED Dot-Matrix Callout Screen -->
+            <div class="dmd-screen flex-1 max-w-[200px] sm:max-w-xs rounded-xl px-2.5 py-1 text-center overflow-hidden">
+                <p id="dmd-text" class="font-dmd font-extrabold text-[10px] sm:text-xs tracking-widest text-amber-400 uppercase truncate">
+                    PULL PLUNGER
+                </p>
+                <div class="flex items-center justify-center space-x-3 mt-0.5">
+                    <span class="text-[9px] text-slate-400">SCORE: <strong id="hud-score" class="font-dmd text-white text-[11px] sm:text-xs">0</strong></span>
+                    <span class="text-[9px] text-amber-400/80">BEST: <strong id="hud-high" class="font-dmd text-amber-300 text-[11px] sm:text-xs">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Action Controls: Nudge, Sound, Pause -->
+            <div class="flex items-center space-x-1">
+                <button id="btn-nudge" title="Nudge Table (Up Arrow / W)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 active:scale-90 text-purple-400 flex items-center justify-center transition border border-slate-700/70">
+                    <i class="fa-solid fa-Wave-square fa-bolt text-xs sm:text-sm"></i>
+                </button>
+                <button id="btn-sound" title="Mute / Unmute Audio" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-cyan-400 flex items-center justify-center transition border border-slate-700/70">
+                    <i id="icon-sound" class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
+                </button>
+                <button id="btn-pause" title="Pause Game (P)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition border border-slate-700/70">
+                    <i id="icon-pause" class="fa-solid fa-pause text-xs sm:text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= MAIN PINBALL PLAYFIELD CABINET ================= -->
+    <main id="playfield-container" class="relative flex-1 w-full flex items-center justify-center my-1 overflow-hidden min-h-0">
+        <div id="cabinet-wrapper" class="relative rounded-2xl overflow-hidden flex items-center justify-center transition-transform duration-75">
+            <canvas id="pinball-canvas" class="block"></canvas>
+
+            <!-- 1. START MENU OVERLAY -->
+            <div id="menu-overlay" class="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-5 text-center z-30">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-purple-500/20 to-rose-500/20 border border-cyan-400/50 flex items-center justify-center mb-3 shadow-lg title-glow">
+                    <i class="fa-solid fa-compact-disc fa-spin text-3xl text-cyan-400"></i>
+                </div>
+
+                <h2 class="font-arcade font-bold text-3xl sm:text-4xl tracking-wider text-white mb-1 title-glow">
+                    CYBER <span class="text-cyan-400">PINBALL</span>
+                </h2>
+                <p class="text-xs text-slate-400 max-w-xs mb-4">
+                    Light the <strong>N-E-O-N</strong> top lanes for up to 5X Multipliers, knock down the <strong>C-Y-B-R</strong> drop targets for Jackpot Bonuses, and keep your ball alive!
+                </p>
+
+                <!-- High Score Card -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl px-5 py-2.5 mb-5 flex items-center space-x-3 shadow-inner">
+                    <i class="fa-solid fa-trophy text-amber-400 text-lg"></i>
+                    <div class="text-left">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Grand Champion Score</p>
+                        <p id="menu-highscore" class="font-dmd font-extrabold text-xl text-amber-400 leading-none">0</p>
+                    </div>
+                </div>
+
+                <button id="btn-start" class="btn-arcade btn-neon-cyan font-arcade font-bold text-base sm:text-lg py-3 px-8 rounded-xl flex items-center justify-center space-x-2 w-full max-w-xs mb-5">
+                    <i class="fa-solid fa-play text-sm"></i>
+                    <span>INSERT COIN / START</span>
+                </button>
+
+                <!-- Controls Legend -->
+                <div class="w-full max-w-xs bg-slate-900/75 border border-slate-800 rounded-xl p-3 text-left text-[11px] space-y-1.5 text-slate-300">
+                    <div class="flex justify-between">
+                        <span class="text-cyan-400 font-bold"><i class="fa-solid fa-laptop mr-1"></i>Left / Right Flippers:</span>
+                        <span>A / D or ◄ / ► or Z / ?</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-amber-400 font-bold"><i class="fa-solid fa-rocket mr-1"></i>Launch Plunger:</span>
+                        <span>Hold Space / Down / S</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-purple-400 font-bold"><i class="fa-solid fa-bolt mr-1"></i>Table Nudge:</span>
+                        <span>Up Arrow / W</span>
+                    </div>
+                    <div class="flex justify-between pt-1 border-t border-slate-800 text-rose-300">
+                        <span class="font-bold"><i class="fa-solid fa-mobile-screen mr-1"></i>Mobile / Touch:</span>
+                        <span>Tap Left/Right or Buttons</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. PAUSE OVERLAY -->
+            <div id="pause-overlay" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30 hidden">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 mb-3">
+                    <i class="fa-solid fa-pause text-xl"></i>
+                </div>
+                <h3 class="font-arcade font-bold text-2xl sm:text-3xl text-white tracking-wider mb-1">TABLE PAUSED</h3>
+                <p class="text-xs text-slate-400 mb-5">Ready to jump back into the arcade?</p>
+                <div class="flex flex-col gap-2.5 w-full max-w-xs">
+                    <button id="btn-resume" class="btn-arcade btn-neon-cyan font-arcade font-bold py-2.5 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-xs"></i>
+                        <span>RESUME GAME</span>
+                    </button>
+                    <button id="btn-restart" class="btn-arcade bg-slate-800 hover:bg-slate-700 text-white font-arcade font-bold py-2.5 px-4 rounded-xl border border-slate-700 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                        <span>NEW GAME</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. GAME OVER OVERLAY -->
+            <div id="gameover-overlay" class="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 hidden">
+                <div class="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-500 mb-2.5 shadow-lg">
+                    <i class="fa-solid fa-flag-checkered text-2xl"></i>
+                </div>
+                <h3 class="font-arcade font-bold text-3xl text-white tracking-wider mb-0.5">GAME <span class="text-rose-500">OVER</span></h3>
+                <p id="new-record-banner" class="text-xs text-amber-400 font-bold uppercase tracking-widest mb-4 hidden animate-bounce">
+                    ★ NEW GRAND CHAMPION RECORD! ★
+                </p>
+
+                <div class="grid grid-cols-2 gap-3 w-full max-w-xs bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 mb-5">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Final Score</p>
+                        <p id="final-score" class="font-dmd font-bold text-lg sm:text-xl text-cyan-400">0</p>
+                    </div>
+                    <div class="border-l border-slate-800">
+                        <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">High Score</p>
+                        <p id="final-best" class="font-dmd font-bold text-lg sm:text-xl text-amber-400">0</p>
+                    </div>
+                </div>
+
+                <button id="btn-play-again" class="btn-arcade btn-neon-cyan font-arcade font-bold text-base py-3 px-6 rounded-xl flex items-center justify-center space-x-2 w-full max-w-xs">
+                    <i class="fa-solid fa-rotate-right text-sm"></i>
+                    <span>PLAY AGAIN</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= BOTTOM TACTILE CONTROLS BAR (Mobile & Laptop Friendly) ================= -->
+    <footer class="w-full max-w-2xl flex items-center justify-between gap-2 px-1 sm:px-2 py-1 z-20 shrink-0">
+        <!-- Left Flipper Touch / Click Button -->
+        <button id="ctrl-left-flipper" type="button" class="btn-arcade btn-flipper-left flex-1 h-12 sm:h-14 rounded-2xl flex items-center justify-center space-x-2 text-cyan-300 font-arcade font-bold text-sm sm:text-base tracking-wider">
+            <i class="fa-solid fa-caret-left text-lg"></i>
+            <span>LEFT FLIPPER</span>
+            <span class="hidden sm:inline text-[10px] opacity-60 font-mono">[A / ◄]</span>
+        </button>
+
+        <!-- Center Plunger Launch Hold Button -->
+        <button id="ctrl-launch" type="button" class="btn-arcade btn-launch w-28 sm:w-36 h-12 sm:h-14 rounded-2xl flex flex-col items-center justify-center text-amber-300 font-arcade font-bold leading-tight">
+            <div class="flex items-center space-x-1 text-xs sm:text-sm">
+                <i class="fa-solid fa-angles-up"></i>
+                <span>LAUNCH</span>
+            </div>
+            <span class="text-[9px] opacity-75 font-sans">HOLD & RELEASE</span>
+        </button>
+
+        <!-- Right Flipper Touch / Click Button -->
+        <button id="ctrl-right-flipper" type="button" class="btn-arcade btn-flipper-right flex-1 h-12 sm:h-14 rounded-2xl flex items-center justify-center space-x-2 text-rose-300 font-arcade font-bold text-sm sm:text-base tracking-wider">
+            <span class="hidden sm:inline text-[10px] opacity-60 font-mono">[D / ►]</span>
+            <span>RIGHT FLIPPER</span>
+            <i class="fa-solid fa-caret-right text-lg"></i>
+        </button>
+    </footer>
+
+    <!-- ================= PINBALL PHYSICS & AUDIO ENGINE ================= -->
+    <script>
+        (function () {
+            "use strict";
+
+            // ============================================================================
+            // 1. PROCEDURAL WEB AUDIO API SOUND SYNTHESIZER
+            // ============================================================================
+            class PinballAudio {
+                constructor() {
+                    this.ctx = null;
+                    this.muted = false;
+                }
+
+                init() {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                }
+
+                playTone(freq, type, duration, vol = 0.14, endFreq = null) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = type;
+                        osc.frequency.setValueAtTime(freq, now);
+                        if (endFreq !== null) {
+                            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+                        }
+
+                        gain.gain.setValueAtTime(vol, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + duration);
+                    } catch (e) {}
+                }
+
+                flipperUp() {
+                    this.playTone(190, 'triangle', 0.055, 0.16, 420);
+                }
+
+                flipperDown() {
+                    this.playTone(150, 'sine', 0.04, 0.08, 95);
+                }
+
+                bumperHit(pitchMod = 0) {
+                    this.playTone(520 + pitchMod * 65, 'square', 0.09, 0.16, 180);
+                }
+
+                slingshot() {
+                    this.playTone(380, 'sawtooth', 0.075, 0.14, 680);
+                }
+
+                rollover(litCount = 1) {
+                    this.playTone(580 + litCount * 110, 'sine', 0.12, 0.14, 880 + litCount * 110);
+                }
+
+                dropTarget() {
+                    this.playTone(440, 'triangle', 0.11, 0.16, 880);
+                }
+
+                spinnerTick() {
+                    this.playTone(950, 'sine', 0.025, 0.06, 1200);
+                }
+
+                launchRelease(power) {
+                    const topFreq = 240 + power * 360;
+                    this.playTone(110, 'sawtooth', 0.22, 0.16, topFreq);
+                }
+
+                jackpotFanfare() {
+                    if (this.muted) return;
+                    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+                    notes.forEach((n, idx) => {
+                        setTimeout(() => this.playTone(n, 'triangle', 0.15, 0.16), idx * 65);
+                    });
+                }
+
+                drain() {
+                    this.playTone(280, 'sawtooth', 0.4, 0.16, 65);
+                }
+
+                nudge() {
+                    this.playTone(110, 'square', 0.09, 0.18, 55);
+                }
+            }
+
+            const sfx = new PinballAudio();
+
+            // ============================================================================
+            // 2. LOGICAL TABLE DIMENSIONS & CONSTANTS
+            // ============================================================================
+            const TABLE_W = 460;
+            const TABLE_H = 820;
+            const SHOOTER_X = 418; // X position of inner shooter lane wall
+            const BALL_R = 10.5;
+            const GRAVITY = 680;   // Downward pinball slope acceleration (px/s^2)
+            const SUBSTEPS = 8;    // Physics sub-steps per frame to prevent tunneling
+            const STORAGE_KEY_HIGH = 'neon_cyber_pinball_high_v1';
+
+            // ============================================================================
+            // 3. TABLE GEOMETRY (Walls, Flippers, Bumpers, Slingshots, Targets, Lanes)
+            // ============================================================================
+            // Static line segments: { x1, y1, x2, y2, color, restitution, isSlingshot, slingNormal }
+            const tableLines = [];
+
+            function addPolyline(points, color = '#38bdf8', restitution = 0.65) {
+                for (let i = 0; i < points.length - 1; i++) {
+                    tableLines.push({
+                        x1: points[i][0],
+                        y1: points[i][1],
+                        x2: points[i + 1][0],
+                        y2: points[i + 1][1],
+                        color,
+                        restitution
+                    });
+                }
+            }
+
+            // Build Outer Arch, Left/Right Boundaries, Shooter Lane & Inlane/Outlane Rails
+            (function buildTableGeometry() {
+                // 1. Top Dome Arch (smooth 24-segment curve from Left Wall (16, 200) over top to Right Wall (444, 200))
+                const archPts = [];
+                const cx = 230;
+                const cy = 205;
+                const rx = 214;
+                const ry = 190;
+                const steps = 26;
+                for (let i = 0; i <= steps; i++) {
+                    const theta = Math.PI + (Math.PI * i) / steps; // PI to 2*PI
+                    archPts.push([
+                        cx + Math.cos(theta) * rx,
+                        cy + Math.sin(theta) * ry
+                    ]);
+                }
+
+                // Left Outer Wall down to Left Outlane drain
+                const leftOuter = [
+                    [16, 205],
+                    [16, 560],
+                    [36, 625],
+                    [36, 712],
+                    [130, 775],
+                    [130, 825]
+                ];
+                addPolyline(leftOuter, '#06b6d4', 0.6);
+
+                // Top Arch
+                addPolyline(archPts, '#a855f7', 0.65);
+
+                // Right Outer Shooter Lane Wall
+                addPolyline([[444, 205], [444, 795]], '#06b6d4', 0.5);
+
+                // Plunger Shooter Floor
+                addPolyline([[SHOOTER_X, 795], [444, 795]], '#f59e0b', 0.2);
+
+                // Inner Shooter Divider Wall (separates main playfield from plunger lane)
+                addPolyline([[SHOOTER_X, 175], [SHOOTER_X, 795]], '#06b6d4', 0.6);
+
+                // Right Playfield Wall (inside of shooter divider) leading to Right Outlane & Drain
+                const rightInnerPlayfield = [
+                    [SHOOTER_X, 560],
+                    [398, 625],
+                    [398, 712],
+                    [304, 775],
+                    [304, 825]
+                ];
+                addPolyline(rightInnerPlayfield, '#f43f5e', 0.6);
+
+                // Left Inlane Divider (guides ball cleanly onto Left Flipper pivot at (130, 720))
+                addPolyline([[68, 600], [68, 678], [130, 720]], '#38bdf8', 0.55);
+
+                // Right Inlane Divider (guides ball cleanly onto Right Flipper pivot at (304, 720))
+                addPolyline([[366, 600], [366, 678], [304, 720]], '#fb7185', 0.55);
+
+                // Upper Left & Right Deflector Guides
+                addPolyline([[16, 330], [52, 385], [16, 430]], '#a855f7', 0.75);
+                addPolyline([[SHOOTER_X, 340], [382, 395], [SHOOTER_X, 440]], '#a855f7', 0.75);
+
+                // Top Rollover Lane Dividers (3 vertical fins creating 4 N-E-O-N lanes)
+                addPolyline([[155, 95], [155, 148]], '#f59e0b', 0.7);
+                addPolyline([[210, 82], [210, 142]], '#f59e0b', 0.7);
+                addPolyline([[265, 95], [265, 148]], '#f59e0b', 0.7);
+
+                // Left Triangular Slingshot
+                const leftSling = [[96, 575], [96, 650], [146, 682], [96, 575]];
+                addPolyline(leftSling, '#22d3ee', 0.75);
+                // Mark hypotenuse as active high-energy slingshot kicker
+                tableLines[tableLines.length - 1].isSlingshot = 'LEFT';
+                tableLines[tableLines.length - 1].color = '#f43f5e';
+
+                // Right Triangular Slingshot
+                const rightSling = [[338, 575], [338, 650], [288, 682], [338, 575]];
+                addPolyline(rightSling, '#22d3ee', 0.75);
+                tableLines[tableLines.length - 1].isSlingshot = 'RIGHT';
+                tableLines[tableLines.length - 1].color = '#f43f5e';
+            })();
+
+            // One-Way Shooter Gate at top of plunger lane (lets ball out to table, blocks re-entry)
+            const oneWayGate = {
+                x1: SHOOTER_X,
+                y1: 175,
+                x2: 440,
+                y2: 112
+            };
+
+            // Flippers Definition
+            // Angle 0 points right (+X). Positive angle goes clockwise (downward).
+            const flippers = {
+                left: {
+                    x: 130,
+                    y: 720,
+                    length: 74,
+                    radius: 8,
+                    restAngle: 0.46,       // ~26 deg down
+                    activeAngle: -0.52,    // ~-30 deg up
+                    angle: 0.46,
+                    angularVel: 0,
+                    pressed: false,
+                    color: '#06b6d4'
+                },
+                right: {
+                    x: 304,
+                    y: 720,
+                    length: 74,
+                    radius: 8,
+                    restAngle: Math.PI - 0.46,    // ~154 deg down-left
+                    activeAngle: Math.PI + 0.52,  // ~210 deg up-left
+                    angle: Math.PI - 0.46,
+                    angularVel: 0,
+                    pressed: false,
+                    color: '#f43f5e'
+                }
+            };
+
+            // 3 Pop Bumpers
+            const popBumpers = [
+                { x: 155, y: 245, r: 24, baseColor: '#06b6d4', glowColor: '#22d3ee', points: 500, pulse: 0, label: '500' },
+                { x: 265, y: 245, r: 24, baseColor: '#f43f5e', glowColor: '#fb7185', points: 500, pulse: 0, label: '500' },
+                { x: 210, y: 325, r: 26, baseColor: '#a855f7', glowColor: '#c084fc', points: 1000, pulse: 0, label: '1K' }
+            ];
+
+            // 4 Top Rollover Lanes (N - E - O - N)
+            const rolloverLanes = [
+                { x: 128, y: 120, r: 13, letter: 'N', lit: false },
+                { x: 182, y: 112, r: 13, letter: 'E', lit: false },
+                { x: 238, y: 112, r: 13, letter: 'O', lit: false },
+                { x: 292, y: 120, r: 13, letter: 'N', lit: false }
+            ];
+
+            // 4 Drop Targets along Left & Right Mid-Banks (C - Y - B - R)
+            const dropTargets = [
+                { x1: 60,  y1: 425, x2: 76,  y2: 375, letter: 'C', down: false, color: '#10b981' },
+                { x1: 44,  y1: 482, x2: 58,  y2: 432, letter: 'Y', down: false, color: '#10b981' },
+                { x1: 358, y1: 375, x2: 374, y2: 425, letter: 'B', down: false, color: '#f59e0b' },
+                { x1: 376, y1: 432, x2: 390, y2: 482, letter: 'R', down: false, color: '#f59e0b' }
+            ];
+
+            // Center Orbit Spinner
+            const centerSpinner = {
+                x: 112,
+                y: 320,
+                r: 18,
+                spinRate: 0,
+                angle: 0
+            };
+
+            // ============================================================================
+            // 4. GAME STATE & PLAYER PROGRESSION
+            // ============================================================================
+            let game = {
+                status: 'MENU', // 'MENU' | 'PLAYING' | 'PAUSED' | 'GAMEOVER'
+                score: 0,
+                highScore: 0,
+                currentBall: 1,
+                maxBalls: 3,
+                multiplier: 1,
+                ballSaveTimer: 0,
+                skillShotReady: true,
+                plungerPull: 0,        // 0.0 to 1.0
+                plungerPulling: false,
+                tiltWarnings: 0,
+                tilted: false,
+                nudgeCooldown: 0,
+                slingshotFlashLeft: 0,
+                slingshotFlashRight: 0,
+                particles: [],
+                floatingScores: [],
+                ball: {
+                    x: 431,
+                    y: 740,
+                    vx: 0,
+                    vy: 0,
+                    inShooter: true,
+                    trail: []
+                }
+            };
+
+            // ============================================================================
+            // 5. DOM REFERENCES
+            // ============================================================================
+            const canvas = document.getElementById('pinball-canvas');
+            const ctx = canvas.getContext('2d');
+            const playfieldContainer = document.getElementById('playfield-container');
+            const cabinetWrapper = document.getElementById('cabinet-wrapper');
+
+            const hudScore = document.getElementById('hud-score');
+            const hudHigh = document.getElementById('hud-high');
+            const hudBall = document.getElementById('hud-ball');
+            const hudMult = document.getElementById('hud-mult');
+            const dmdText = document.getElementById('dmd-text');
+            const menuHighscore = document.getElementById('menu-highscore');
+
+            const menuOverlay = document.getElementById('menu-overlay');
+            const pauseOverlay = document.getElementById('pause-overlay');
+            const gameoverOverlay = document.getElementById('gameover-overlay');
+            const finalScoreEl = document.getElementById('final-score');
+            const finalBestEl = document.getElementById('final-best');
+            const newRecordBanner = document.getElementById('new-record-banner');
+
+            const btnStart = document.getElementById('btn-start');
+            const btnResume = document.getElementById('btn-resume');
+            const btnRestart = document.getElementById('btn-restart');
+            const btnPlayAgain = document.getElementById('btn-play-again');
+            const btnPause = document.getElementById('btn-pause');
+            const iconPause = document.getElementById('icon-pause');
+            const btnSound = document.getElementById('btn-sound');
+            const iconSound = document.getElementById('icon-sound');
+            const btnNudge = document.getElementById('btn-nudge');
+
+            const ctrlLeftFlipper = document.getElementById('ctrl-left-flipper');
+            const ctrlRightFlipper = document.getElementById('ctrl-right-flipper');
+            const ctrlLaunch = document.getElementById('ctrl-launch');
+
+            // ============================================================================
+            // 6. INITIALIZATION, HUD & RESPONSIVE SCALING
+            // ============================================================================
+            function loadHighScore() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY_HIGH);
+                    if (saved) game.highScore = parseInt(saved, 10) || 0;
+                } catch (e) {}
+                updateHUD();
+                menuHighscore.textContent = game.highScore.toLocaleString();
+            }
+
+            function saveHighScore() {
+                try {
+                    localStorage.setItem(STORAGE_KEY_HIGH, String(game.highScore));
+                } catch (e) {}
+            }
+
+            function setDMD(msg) {
+                dmdText.textContent = msg;
+            }
+
+            function addPoints(basePts, x, y, color = '#38bdf8') {
+                if (game.tilted) return;
+                const total = basePts * game.multiplier;
+                game.score += total;
+                if (game.score > game.highScore) {
+                    game.highScore = game.score;
+                    saveHighScore();
+                }
+                updateHUD();
+
+                if (x !== undefined && y !== undefined) {
+                    game.floatingScores.push({
+                        text: `+${total.toLocaleString()}`,
+                        x,
+                        y,
+                        alpha: 1.0,
+                        color
+                    });
+                }
+            }
+
+            function updateHUD() {
+                hudScore.textContent = game.score.toLocaleString();
+                hudHigh.textContent = game.highScore.toLocaleString();
+                hudBall.textContent = `BALL ${game.currentBall} / ${game.maxBalls}`;
+                hudMult.textContent = `${game.multiplier}X MULT`;
+            }
+
+            function spawnBallInShooter(isBallSave = false) {
+                game.ball.x = 431;
+                game.ball.y = 755;
+                game.ball.vx = 0;
+                game.ball.vy = 0;
+                game.ball.inShooter = true;
+                game.ball.trail = [];
+                game.plungerPull = 0;
+                game.plungerPulling = false;
+                game.tilted = false;
+                game.tiltWarnings = 0;
+                game.skillShotReady = !isBallSave;
+
+                if (isBallSave) {
+                    setDMD('BALL SAVED! LAUNCH AGAIN');
+                } else {
+                    setDMD(`BALL ${game.currentBall} READY — PULL PLUNGER`);
+                }
+                updateHUD();
+            }
+
+            function startNewGame() {
+                sfx.init();
+                const prevHigh = game.highScore;
+                game.prevHighScore = prevHigh;
+                game.score = 0;
+                game.currentBall = 1;
+                game.multiplier = 1;
+                game.particles = [];
+                game.floatingScores = [];
+
+                rolloverLanes.forEach(l => { l.lit = false; });
+                dropTargets.forEach(t => { t.down = false; });
+
+                menuOverlay.classList.add('hidden');
+                pauseOverlay.classList.add('hidden');
+                gameoverOverlay.classList.add('hidden');
+                iconPause.className = 'fa-solid fa-pause text-xs sm:text-sm';
+
+                game.status = 'PLAYING';
+                spawnBallInShooter(false);
+            }
+
+            function resizeCabinet() {
+                const availW = playfieldContainer.clientWidth - 8;
+                const availH = playfieldContainer.clientHeight - 8;
+                const aspect = TABLE_W / TABLE_H;
+
+                let drawH = availH;
+                let drawW = Math.floor(drawH * aspect);
+
+                if (drawW > availW) {
+                    drawW = availW;
+                    drawH = Math.floor(drawW / aspect);
+                }
+
+                drawW = Math.max(220, drawW);
+                drawH = Math.max(390, drawH);
+
+                canvas.width = TABLE_W;
+                canvas.height = TABLE_H;
+                canvas.style.width = `${drawW}px`;
+                canvas.style.height = `${drawH}px`;
+                cabinetWrapper.style.width = `${drawW}px`;
+                cabinetWrapper.style.height = `${drawH}px`;
+
+                renderTable();
+            }
+
+            // ============================================================================
+            // 7. SUB-STEPPED 2D RIGID-BODY & FLIPPER IMPULSE PHYSICS ENGINE
+            // ============================================================================
+            function spawnSparks(x, y, color, count = 12) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const spd = 60 + Math.random() * 240;
+                    game.particles.push({
+                        x,
+                        y,
+                        vx: Math.cos(angle) * spd,
+                        vy: Math.sin(angle) * spd,
+                        r: 1.8 + Math.random() * 2.5,
+                        alpha: 1.0,
+                        color
+                    });
+                }
+            }
+
+            // Closest point on line segment AB to point P
+            function closestPointOnSegment(px, py, x1, y1, x2, y2) {
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const lenSq = dx * dx + dy * dy;
+                if (lenSq === 0) return { x: x1, y: y1, t: 0 };
+                let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+                t = Math.max(0, Math.min(1, t));
+                return {
+                    x: x1 + t * dx,
+                    y: y1 + t * dy,
+                    t
+                };
+            }
+
+            function resolveLineCollision(ball, x1, y1, x2, y2, restitution = 0.65, extraKick = 0) {
+                const cp = closestPointOnSegment(ball.x, ball.y, x1, y1, x2, y2);
+                const dx = ball.x - cp.x;
+                const dy = ball.y - cp.y;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq < BALL_R * BALL_R && distSq > 0.00001) {
+                    const dist = Math.sqrt(distSq);
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    // Push ball out of overlap
+                    const overlap = BALL_R - dist;
+                    ball.x += nx * overlap;
+                    ball.y += ny * overlap;
+
+                    // Reflect velocity along normal if moving toward segment
+                    const vn = ball.vx * nx + ball.vy * ny;
+                    if (vn < 0) {
+                        const impulse = -(1 + restitution) * vn + extraKick;
+                        ball.vx += nx * impulse;
+                        ball.vy += ny * impulse;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function updateFlipperState(flipper, isLeft, dt) {
+                const prevAngle = flipper.angle;
+                const target = (flipper.pressed && !game.tilted) ? flipper.activeAngle : flipper.restAngle;
+                const speed = 18.5; // Fast arcade solenoid snap speed (rad/sec)
+
+                const diff = target - flipper.angle;
+                if (Math.abs(diff) < speed * dt) {
+                    flipper.angle = target;
+                } else {
+                    flipper.angle += Math.sign(diff) * speed * dt;
+                }
+
+                flipper.angularVel = (flipper.angle - prevAngle) / dt;
+
+                // Collide ball with capsule flipper
+                const tipX = flipper.x + Math.cos(flipper.angle) * flipper.length;
+                const tipY = flipper.y + Math.sin(flipper.angle) * flipper.length;
+
+                const cp = closestPointOnSegment(game.ball.x, game.ball.y, flipper.x, flipper.y, tipX, tipY);
+                const dx = game.ball.x - cp.x;
+                const dy = game.ball.y - cp.y;
+                const minDist = BALL_R + flipper.radius;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq < minDist * minDist && distSq > 0.00001) {
+                    const dist = Math.sqrt(distSq);
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    // Separate ball from flipper surface
+                    const overlap = minDist - dist;
+                    game.ball.x += nx * overlap;
+                    game.ball.y += ny * overlap;
+
+                    // Linear velocity of the contact point on the rotating flipper: V = omega x r
+                    const rx = cp.x - flipper.x;
+                    const ry = cp.y - flipper.y;
+                    const surfVx = -flipper.angularVel * ry;
+                    const surfVy = flipper.angularVel * rx;
+
+                    // Relative velocity between ball and moving flipper surface
+                    const relVx = game.ball.vx - surfVx;
+                    const relVy = game.ball.vy - surfVy;
+                    const relVn = relVx * nx + relVy * ny;
+
+                    if (relVn < 0) {
+                        const restitution = 0.55;
+                        const j = -(1 + restitution) * relVn;
+                        game.ball.vx += nx * j;
+                        game.ball.vy += ny * j;
+
+                        // Add extra crisp upward kick when flipper is actively swinging up
+                        if (Math.abs(flipper.angularVel) > 1.0) {
+                            game.ball.vx += surfVx * 0.42;
+                            game.ball.vy += surfVy * 0.42;
+                            spawnSparks(cp.x, cp.y, flipper.color, 8);
+                        }
+                    }
+                }
+            }
+
+            function stepPhysics(dt) {
+                const subDt = dt / SUBSTEPS;
+                const b = game.ball;
+
+                // Plunger charging while ball sits at bottom of shooter lane
+                if (game.plungerPulling && b.inShooter && b.y > 700) {
+                    game.plungerPull = Math.min(1.0, game.plungerPull + dt * 1.15);
+                }
+
+                // Decay timers
+                if (game.ballSaveTimer > 0) {
+                    game.ballSaveTimer = Math.max(0, game.ballSaveTimer - dt);
+                }
+                if (game.nudgeCooldown > 0) {
+                    game.nudgeCooldown = Math.max(0, game.nudgeCooldown - dt);
+                }
+                if (game.slingshotFlashLeft > 0) game.slingshotFlashLeft = Math.max(0, game.slingshotFlashLeft - dt * 5);
+                if (game.slingshotFlashRight > 0) game.slingshotFlashRight = Math.max(0, game.slingshotFlashRight - dt * 5);
+
+                // Decay bumper pulses
+                popBumpers.forEach(bmp => {
+                    if (bmp.pulse > 0) bmp.pulse = Math.max(0, bmp.pulse - dt * 4.5);
+                });
+
+                // Center Spinner rotation & ticks
+                if (centerSpinner.spinRate > 0.2) {
+                    const prevRot = Math.floor(centerSpinner.angle / Math.PI);
+                    centerSpinner.angle += centerSpinner.spinRate * dt;
+                    const newRot = Math.floor(centerSpinner.angle / Math.PI);
+                    if (newRot > prevRot) {
+                        sfx.spinnerTick();
+                        addPoints(150);
+                    }
+                    centerSpinner.spinRate *= Math.pow(0.22, dt);
+                } else {
+                    centerSpinner.spinRate = 0;
+                }
+
+                // Sub-stepped integration & collision loop
+                for (let step = 0; step < SUBSTEPS; step++) {
+                    // Apply slope gravity
+                    b.vy += GRAVITY * subDt;
+
+                    // Subtle air drag
+                    b.vx *= (1 - 0.04 * subDt);
+                    b.vy *= (1 - 0.04 * subDt);
+
+                    // Clamp extreme velocity
+                    const maxSpd = 1550;
+                    const curSpdSq = b.vx * b.vx + b.vy * b.vy;
+                    if (curSpdSq > maxSpd * maxSpd) {
+                        const scale = maxSpd / Math.sqrt(curSpdSq);
+                        b.vx *= scale;
+                        b.vy *= scale;
+                    }
+
+                    b.x += b.vx * subDt;
+                    b.y += b.vy * subDt;
+
+                    // Keep ball resting on plunger spring tip when in shooter lane
+                    const plungerTopY = 785 + game.plungerPull * 28;
+                    if (b.x > SHOOTER_X && b.y + BALL_R > plungerTopY) {
+                        b.y = plungerTopY - BALL_R;
+                        if (b.vy > 0) b.vy = -b.vy * 0.15;
+                    }
+
+                    // Detect exit from shooter lane onto main playfield
+                    if (b.inShooter && b.x < SHOOTER_X - 4) {
+                        b.inShooter = false;
+                        game.ballSaveTimer = 9.0; // 9-second Ball Save grace period after launch!
+                    }
+
+                    // One-Way Gate at top of shooter lane (blocks ball from falling back into shooter lane)
+                    if (!b.inShooter) {
+                        resolveLineCollision(b, oneWayGate.x1, oneWayGate.y1, oneWayGate.x2, oneWayGate.y2, 0.7);
+                    }
+
+                    // 1. Static Table Walls & Slingshots
+                    for (let i = 0; i < tableLines.length; i++) {
+                        const ln = tableLines[i];
+                        const extraKick = (ln.isSlingshot && !game.tilted) ? 390 : 0;
+                        const hit = resolveLineCollision(b, ln.x1, ln.y1, ln.x2, ln.y2, ln.restitution, extraKick);
+
+                        if (hit && ln.isSlingshot && !game.tilted) {
+                            sfx.slingshot();
+                            addPoints(250, b.x, b.y, '#fb7185');
+                            spawnSparks(b.x, b.y, '#f43f5e', 10);
+                            if (ln.isSlingshot === 'LEFT') game.slingshotFlashLeft = 1.0;
+                            else game.slingshotFlashRight = 1.0;
+                        }
+                    }
+
+                    // 2. Active Drop Targets (C - Y - B - R)
+                    for (let i = 0; i < dropTargets.length; i++) {
+                        const dtarg = dropTargets[i];
+                        if (dtarg.down) continue;
+                        if (resolveLineCollision(b, dtarg.x1, dtarg.y1, dtarg.x2, dtarg.y2, 0.8, 120)) {
+                            dtarg.down = true;
+                            sfx.dropTarget();
+                            addPoints(1500, (dtarg.x1 + dtarg.x2) / 2, (dtarg.y1 + dtarg.y2) / 2, dtarg.color);
+                            spawnSparks((dtarg.x1 + dtarg.x2) / 2, (dtarg.y1 + dtarg.y2) / 2, dtarg.color, 16);
+                            setDMD(`DROP TARGET '${dtarg.letter}' HIT!`);
+
+                            // Check if all 4 C-Y-B-R targets are knocked down -> JACKPOT!
+                            if (dropTargets.every(t => t.down)) {
+                                sfx.jackpotFanfare();
+                                addPoints(15000, TABLE_W / 2, 380, '#fbbf24');
+                                game.ballSaveTimer = Math.max(game.ballSaveTimer, 12.0);
+                                setDMD('★ CYBER JACKPOT! +15,000 & BALL SAVE ★');
+                                setTimeout(() => {
+                                    dropTargets.forEach(t => { t.down = false; });
+                                }, 1400);
+                            }
+                        }
+                    }
+
+                    // 3. Pop Bumpers
+                    for (let i = 0; i < popBumpers.length; i++) {
+                        const bmp = popBumpers[i];
+                        const dx = b.x - bmp.x;
+                        const dy = b.y - bmp.y;
+                        const minDist = BALL_R + bmp.r;
+                        const distSq = dx * dx + dy * dy;
+
+                        if (distSq < minDist * minDist && distSq > 0.0001) {
+                            const dist = Math.sqrt(distSq);
+                            const nx = dx / dist;
+                            const ny = dy / dist;
+
+                            b.x = bmp.x + nx * (minDist + 0.5);
+                            b.y = bmp.y + ny * (minDist + 0.5);
+
+                            const kickSpeed = game.tilted ? 220 : 540;
+                            b.vx = nx * kickSpeed;
+                            b.vy = ny * kickSpeed;
+
+                            if (!game.tilted) {
+                                bmp.pulse = 1.0;
+                                sfx.bumperHit(i);
+                                addPoints(bmp.points, bmp.x, bmp.y - 18, bmp.glowColor);
+                                spawnSparks(b.x, b.y, bmp.glowColor, 14);
+                            }
+                        }
+                    }
+
+                    // 4. Left & Right Flippers
+                    updateFlipperState(flippers.left, true, subDt);
+                    updateFlipperState(flippers.right, false, subDt);
+                }
+
+                // 5. Sensor Checks: Top N-E-O-N Rollover Lanes
+                rolloverLanes.forEach((lane, idx) => {
+                    const dist = Math.hypot(b.x - lane.x, b.y - lane.y);
+                    if (dist < lane.r + BALL_R && !lane.justTriggered) {
+                        lane.justTriggered = true;
+                        if (!lane.lit) {
+                            lane.lit = true;
+                            const litCount = rolloverLanes.filter(l => l.lit).length;
+                            sfx.rollover(litCount);
+
+                            if (game.skillShotReady) {
+                                game.skillShotReady = false;
+                                addPoints(5000, lane.x, lane.y, '#fbbf24');
+                                setDMD('★ SKILL SHOT! +5,000 ★');
+                            } else {
+                                addPoints(1000, lane.x, lane.y, '#f59e0b');
+                                setDMD(`LANE '${lane.letter}' LIT!`);
+                            }
+
+                            // Check if all 4 N-E-O-N lanes are lit -> Upgrade Multiplier!
+                            if (litCount === 4) {
+                                const multSteps = [1, 2, 3, 5, 10];
+                                const curIdx = multSteps.indexOf(game.multiplier);
+                                if (curIdx < multSteps.length - 1) {
+                                    game.multiplier = multSteps[curIdx + 1];
+                                }
+                                sfx.jackpotFanfare();
+                                addPoints(5000, 210, 140, '#f59e0b');
+                                setDMD(`★ MULTIPLIER UP TO ${game.multiplier}X! ★`);
+                                updateHUD();
+                                setTimeout(() => {
+                                    rolloverLanes.forEach(l => { l.lit = false; });
+                                }, 900);
+                            }
+                        } else {
+                            sfx.rollover(1);
+                            addPoints(250, lane.x, lane.y, '#fde047');
+                        }
+                    } else if (dist > lane.r + BALL_R + 6) {
+                        lane.justTriggered = false;
+                    }
+                });
+
+                // 6. Sensor Check: Orbit Spinner
+                const spinDist = Math.hypot(b.x - centerSpinner.x, b.y - centerSpinner.y);
+                if (spinDist < centerSpinner.r + BALL_R && !centerSpinner.justHit) {
+                    centerSpinner.justHit = true;
+                    const ballSpd = Math.hypot(b.vx, b.vy);
+                    centerSpinner.spinRate = Math.min(48, Math.max(12, ballSpd * 0.055));
+                    setDMD('ORBIT SPINNER CHARGED!');
+                } else if (spinDist > centerSpinner.r + BALL_R + 8) {
+                    centerSpinner.justHit = false;
+                }
+
+                // 7. Update Ball Motion Trail & Particles
+                b.trail.push({ x: b.x, y: b.y });
+                if (b.trail.length > 12) b.trail.shift();
+
+                for (let i = game.particles.length - 1; i >= 0; i--) {
+                    const p = game.particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.alpha -= dt * 2.4;
+                    if (p.alpha <= 0) game.particles.splice(i, 1);
+                }
+
+                for (let i = game.floatingScores.length - 1; i >= 0; i--) {
+                    const fs = game.floatingScores[i];
+                    fs.y -= dt * 36;
+                    fs.alpha -= dt * 1.15;
+                    if (fs.alpha <= 0) game.floatingScores.splice(i, 1);
+                }
+
+                // 8. Check Ball Drain at Bottom of Table
+                if (b.y - BALL_R > TABLE_H + 12) {
+                    handleBallDrain();
+                }
+            }
+
+            function releasePlunger() {
+                if (!game.plungerPulling) return;
+                game.plungerPulling = false;
+                ctrlLaunch.classList.remove('pressed');
+
+                if (game.ball.inShooter && game.ball.y > 700) {
+                    const power = Math.max(0.25, game.plungerPull);
+                    // Launch velocity scaled so full pull shoots cleanly around the top arch
+                    game.ball.vy = -(960 + power * 640);
+                    game.ball.vx = (Math.random() - 0.5) * 18;
+                    sfx.launchRelease(power);
+                    spawnSparks(game.ball.x, game.ball.y + 10, '#f59e0b', 14);
+                    setDMD(power > 0.75 ? 'FULL POWER LAUNCH!' : 'SKILL SHOT LAUNCH!');
+                }
+                game.plungerPull = 0;
+            }
+
+            function triggerTableNudge() {
+                if (game.status !== 'PLAYING' || game.ball.inShooter || game.tilted || game.nudgeCooldown > 0) return;
+                game.nudgeCooldown = 0.45;
+                game.tiltWarnings++;
+                sfx.nudge();
+
+                // Visual shake on cabinet wrapper
+                cabinetWrapper.style.transform = 'translate(5px, -4px)';
+                setTimeout(() => { cabinetWrapper.style.transform = 'translate(-4px, 3px)'; }, 50);
+                setTimeout(() => { cabinetWrapper.style.transform = 'translate(0, 0)'; }, 110);
+
+                if (game.tiltWarnings >= 3) {
+                    game.tilted = true;
+                    flippers.left.pressed = false;
+                    flippers.right.pressed = false;
+                    setDMD('★ TILT! FLIPPERS LOCKED ★');
+                } else {
+                    game.ball.vy -= 145;
+                    game.ball.vx += (Math.random() - 0.5) * 180;
+                    setDMD(`NUDGE! (TILT WARNING ${game.tiltWarnings}/2)`);
+                }
+            }
+
+            function handleBallDrain() {
+                sfx.drain();
+
+                // Check if Ball Save is active
+                if (game.ballSaveTimer > 0 && !game.tilted) {
+                    game.ballSaveTimer = 0;
+                    spawnBallInShooter(true);
+                    return;
+                }
+
+                if (game.currentBall < game.maxBalls) {
+                    game.currentBall++;
+                    spawnBallInShooter(false);
+                } else {
+                    // Game Over
+                    game.status = 'GAMEOVER';
+                    finalScoreEl.textContent = game.score.toLocaleString();
+                    finalBestEl.textContent = game.highScore.toLocaleString();
+                    newRecordBanner.classList.toggle('hidden', !(game.score > 0 && game.score > game.prevHighScore));
+                    gameoverOverlay.classList.remove('hidden');
+                    setDMD('GAME OVER');
+                }
+            }
+
+            // ============================================================================
+            // 8. PLAYFIELD RENDERER (Neon Vectors, Bumpers, Flippers, Ball & FX)
+            // ============================================================================
+            function renderTable() {
+                // 1. Deep Cyber Playfield Backdrop & Grid
+                ctx.fillStyle = '#070b18';
+                ctx.fillRect(0, 0, TABLE_W, TABLE_H);
+
+                ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = 0; x < TABLE_W; x += 38) {
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, TABLE_H);
+                }
+                for (let y = 0; y < TABLE_H; y += 38) {
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(TABLE_W, y);
+                }
+                ctx.stroke();
+
+                // 2. Center Playfield Decal Emblem & Multiplier Ring
+                ctx.save();
+                ctx.translate(215, 485);
+                ctx.strokeStyle = 'rgba(168, 85, 247, 0.28)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, 66, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+                ctx.beginPath();
+                ctx.arc(0, 0, 56, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = '800 18px "Orbitron", sans-serif';
+                ctx.fillStyle = '#c084fc';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${game.multiplier}X BONUS`, 0, -4);
+
+                // Ball Save Indicator Light between flippers
+                const saveLit = game.ballSaveTimer > 0 && (game.ballSaveTimer > 2.5 || Math.floor(game.ballSaveTimer * 8) % 2 === 0);
+                ctx.font = '700 11px "Chakra Petch", sans-serif';
+                ctx.fillStyle = saveLit ? '#10b981' : '#334155';
+                ctx.fillText(saveLit ? '● BALL SAVE ACTIVE ●' : '○ BALL SAVE ○', 0, 20);
+                ctx.restore();
+
+                // 3. Draw Top N-E-O-N Rollover Lanes
+                rolloverLanes.forEach(lane => {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(lane.x, lane.y, lane.r, 0, Math.PI * 2);
+                    if (lane.lit) {
+                        ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+                        ctx.strokeStyle = '#fbbf24';
+                        ctx.shadowColor = '#f59e0b';
+                        ctx.shadowBlur = 12;
+                    } else {
+                        ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                        ctx.strokeStyle = '#475569';
+                    }
+                    ctx.lineWidth = 2;
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.font = '800 12px "Orbitron", sans-serif';
+                    ctx.fillStyle = lane.lit ? '#fef08a' : '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(lane.letter, lane.x, lane.y + 1);
+                    ctx.restore();
+                });
+
+                // 4. Draw Orbit Spinner
+                ctx.save();
+                ctx.translate(centerSpinner.x, centerSpinner.y);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 2;
+                const scaleY = Math.cos(centerSpinner.angle);
+                ctx.beginPath();
+                ctx.rect(-18, -8 * Math.abs(scaleY), 36, 16 * Math.abs(scaleY));
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+
+                // 5. Draw Slingshot Glow Fills
+                ctx.save();
+                ctx.fillStyle = game.slingshotFlashLeft > 0
+                    ? `rgba(244, 63, 94, ${0.25 + game.slingshotFlashLeft * 0.5})`
+                    : 'rgba(6, 182, 212, 0.1)';
+                ctx.beginPath();
+                ctx.moveTo(96, 575);
+                ctx.lineTo(96, 650);
+                ctx.lineTo(146, 682);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = game.slingshotFlashRight > 0
+                    ? `rgba(244, 63, 94, ${0.25 + game.slingshotFlashRight * 0.5})`
+                    : 'rgba(6, 182, 212, 0.1)';
+                ctx.beginPath();
+                ctx.moveTo(338, 575);
+                ctx.lineTo(338, 650);
+                ctx.lineTo(288, 682);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                // 6. Draw Static Table Walls & Rails
+                tableLines.forEach(ln => {
+                    ctx.save();
+                    ctx.strokeStyle = ln.color;
+                    ctx.lineWidth = ln.isSlingshot ? 4 : 3.2;
+                    ctx.lineCap = 'round';
+                    ctx.shadowColor = ln.color;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(ln.x1, ln.y1);
+                    ctx.lineTo(ln.x2, ln.y2);
+                    ctx.stroke();
+                    ctx.restore();
+                });
+
+                // One-Way Gate Visual (Dashed Cyan Bar at Top of Shooter)
+                ctx.save();
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(oneWayGate.x1, oneWayGate.y1);
+                ctx.lineTo(oneWayGate.x2, oneWayGate.y2);
+                ctx.stroke();
+                ctx.restore();
+
+                // 7. Draw Drop Targets (C - Y - B - R)
+                dropTargets.forEach(dtarg => {
+                    ctx.save();
+                    ctx.lineCap = 'round';
+                    if (dtarg.down) {
+                        ctx.strokeStyle = 'rgba(71, 85, 105, 0.4)';
+                        ctx.lineWidth = 3;
+                    } else {
+                        ctx.strokeStyle = dtarg.color;
+                        ctx.shadowColor = dtarg.color;
+                        ctx.shadowBlur = 10;
+                        ctx.lineWidth = 7;
+                    }
+                    ctx.beginPath();
+                    ctx.moveTo(dtarg.x1, dtarg.y1);
+                    ctx.lineTo(dtarg.x2, dtarg.y2);
+                    ctx.stroke();
+                    ctx.restore();
+                });
+
+                // 8. Draw Pop Bumpers
+                popBumpers.forEach(bmp => {
+                    const scale = 1 + bmp.pulse * 0.22;
+                    ctx.save();
+                    ctx.translate(bmp.x, bmp.y);
+                    ctx.scale(scale, scale);
+
+                    ctx.fillStyle = bmp.pulse > 0.1 ? bmp.glowColor : '#0f172a';
+                    ctx.strokeStyle = bmp.glowColor;
+                    ctx.lineWidth = 3.5;
+                    ctx.shadowColor = bmp.glowColor;
+                    ctx.shadowBlur = bmp.pulse > 0.1 ? 22 : 10;
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, bmp.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Inner ring
+                    ctx.beginPath();
+                    ctx.arc(0, 0, bmp.r * 0.65, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.shadowBlur = 0;
+                    ctx.font = '800 11px "Orbitron", sans-serif';
+                    ctx.fillStyle = bmp.pulse > 0.1 ? '#090d16' : '#f8fafc';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(bmp.label, 0, 1);
+                    ctx.restore();
+                });
+
+                // 9. Draw Spring Plunger in Shooter Lane
+                const plungerTopY = 785 + game.plungerPull * 28;
+                ctx.save();
+                // Plunger head
+                ctx.fillStyle = '#f59e0b';
+                ctx.shadowColor = '#f59e0b';
+                ctx.shadowBlur = 8;
+                ctx.fillRect(SHOOTER_X + 3, plungerTopY, 20, 6);
+
+                // Coiled spring lines
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                const coils = 6;
+                const springH = Math.max(4, 816 - (plungerTopY + 6));
+                for (let c = 0; c <= coils; c++) {
+                    const sy = plungerTopY + 6 + (c / coils) * springH;
+                    const sx = (c % 2 === 0) ? SHOOTER_X + 5 : SHOOTER_X + 21;
+                    if (c === 0) ctx.moveTo(SHOOTER_X + 13, sy);
+                    else ctx.lineTo(sx, sy);
+                }
+                ctx.stroke();
+                ctx.restore();
+
+                // 10. Draw Left & Right Flippers
+                drawFlipper(flippers.left);
+                drawFlipper(flippers.right);
+
+                // 11. Draw Ball Trail & Chrome Neon Ball
+                const b = game.ball;
+                for (let i = 0; i < b.trail.length; i++) {
+                    const pt = b.trail[i];
+                    const ratio = (i + 1) / b.trail.length;
+                    ctx.save();
+                    ctx.globalAlpha = ratio * 0.35;
+                    ctx.fillStyle = game.multiplier >= 3 ? '#f59e0b' : '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, BALL_R * ratio * 0.85, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                ctx.save();
+                const grad = ctx.createRadialGradient(b.x - 3, b.y - 3, 2, b.x, b.y, BALL_R);
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.6, '#e2e8f0');
+                grad.addColorStop(1, '#38bdf8');
+                ctx.fillStyle = grad;
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 14;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // 12. Draw Particle Sparks & Floating Score Callouts
+                game.particles.forEach(p => {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fillStyle = p.color;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+
+                game.floatingScores.forEach(fs => {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, fs.alpha);
+                    ctx.font = '800 13px "Chakra Petch", sans-serif';
+                    ctx.fillStyle = fs.color;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(fs.text, fs.x, fs.y);
+                    ctx.restore();
+                });
+            }
+
+            function drawFlipper(f) {
+                const tipX = f.x + Math.cos(f.angle) * f.length;
+                const tipY = f.y + Math.sin(f.angle) * f.length;
+
+                ctx.save();
+                ctx.strokeStyle = f.color;
+                ctx.lineWidth = f.radius * 2;
+                ctx.lineCap = 'round';
+                ctx.shadowColor = f.color;
+                ctx.shadowBlur = 14;
+                ctx.beginPath();
+                ctx.moveTo(f.x, f.y);
+                ctx.lineTo(tipX, tipY);
+                ctx.stroke();
+
+                // Inner white highlight core
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = f.radius * 0.75;
+                ctx.beginPath();
+                ctx.moveTo(f.x, f.y);
+                ctx.lineTo(tipX, tipY);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // ============================================================================
+            // 9. MAIN ANIMATION LOOP
+            // ============================================================================
+            let lastTime = performance.now();
+
+            function gameLoop(now) {
+                const dt = Math.min(0.035, (now - lastTime) / 1000);
+                lastTime = now;
+
+                if (game.status === 'PLAYING') {
+                    stepPhysics(dt);
+                }
+
+                renderTable();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ============================================================================
+            // 10. CONTROLS: PC/LAPTOP KEYBOARD, MOUSE & MOBILE TOUCH
+            // ============================================================================
+            function setLeftFlipper(active) {
+                if (flippers.left.pressed !== active) {
+                    flippers.left.pressed = active;
+                    ctrlLeftFlipper.classList.toggle('pressed', active);
+                    if (active && game.status === 'PLAYING' && !game.tilted) sfx.flipperUp();
+                    else if (!active && game.status === 'PLAYING') sfx.flipperDown();
+                }
+            }
+
+            function setRightFlipper(active) {
+                if (flippers.right.pressed !== active) {
+                    flippers.right.pressed = active;
+                    ctrlRightFlipper.classList.toggle('pressed', active);
+                    if (active && game.status === 'PLAYING' && !game.tilted) sfx.flipperUp();
+                    else if (!active && game.status === 'PLAYING') sfx.flipperDown();
+                }
+            }
+
+            function startPlungerPull() {
+                if (game.status === 'PLAYING' && game.ball.inShooter) {
+                    game.plungerPulling = true;
+                    ctrlLaunch.classList.add('pressed');
+                }
+            }
+
+            // Keyboard Controls (PC & Laptop)
+            window.addEventListener('keydown', (e) => {
+                if (e.repeat) return;
+                const k = e.key;
+
+                // Pause shortcut
+                if (k === 'p' || k === 'P' || k === 'Escape') {
+                    if (game.status === 'PLAYING' || game.status === 'PAUSED') {
+                        e.preventDefault();
+                        togglePause();
+                        return;
+                    }
+                }
+
+                if (game.status !== 'PLAYING') return;
+
+                if (k === 'ArrowLeft' || k === 'a' || k === 'A' || k === 'z' || k === 'Z') {
+                    e.preventDefault();
+                    setLeftFlipper(true);
+                } else if (k === 'ArrowRight' || k === 'd' || k === 'D' || k === '/' || k === '?') {
+                    e.preventDefault();
+                    setRightFlipper(true);
+                } else if (k === 'ArrowDown' || k === 's' || k === 'S' || k === ' ') {
+                    e.preventDefault();
+                    startPlungerPull();
+                } else if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+                    e.preventDefault();
+                    triggerTableNudge();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const k = e.key;
+                if (k === 'ArrowLeft' || k === 'a' || k === 'A' || k === 'z' || k === 'Z') {
+                    setLeftFlipper(false);
+                } else if (k === 'ArrowRight' || k === 'd' || k === 'D' || k === '/' || k === '?') {
+                    setRightFlipper(false);
+                } else if (k === 'ArrowDown' || k === 's' || k === 'S' || k === ' ') {
+                    releasePlunger();
+                }
+            });
+
+            // Bottom Tactile Buttons (Touch & Mouse)
+            function bindHoldButton(btn, onDown, onUp) {
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); sfx.init(); onDown(); }, { passive: false });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); }, { passive: false });
+                btn.addEventListener('touchcancel', () => onUp());
+                btn.addEventListener('mousedown', (e) => { e.preventDefault(); sfx.init(); onDown(); });
+                btn.addEventListener('mouseup', () => onUp());
+                btn.addEventListener('mouseleave', () => onUp());
+            }
+
+            bindHoldButton(ctrlLeftFlipper, () => setLeftFlipper(true), () => setLeftFlipper(false));
+            bindHoldButton(ctrlRightFlipper, () => setRightFlipper(true), () => setRightFlipper(false));
+            bindHoldButton(ctrlLaunch, () => startPlungerPull(), () => releasePlunger());
+
+            // Direct Playfield Multi-Touch Zones (Tap left half for Left Flipper, right half for Right Flipper, or drag shooter lane)
+            function updatePlayfieldTouches(e) {
+                if (game.status !== 'PLAYING') return;
+                if (e.target.closest('button')) return;
+                e.preventDefault();
+                sfx.init();
+
+                const rect = canvas.getBoundingClientRect();
+                const midX = rect.left + rect.width * 0.46;
+                const shooterZoneX = rect.left + rect.width * 0.86;
+
+                let wantLeft = false;
+                let wantRight = false;
+                let wantLaunch = false;
+
+                for (let i = 0; i < e.touches.length; i++) {
+                    const t = e.touches[i];
+                    if (game.ball.inShooter && t.clientX >= shooterZoneX) {
+                        wantLaunch = true;
+                    } else if (t.clientX < midX) {
+                        wantLeft = true;
+                    } else {
+                        wantRight = true;
+                    }
+                }
+
+                setLeftFlipper(wantLeft);
+                setRightFlipper(wantRight);
+                if (wantLaunch && !game.plungerPulling) {
+                    startPlungerPull();
+                } else if (!wantLaunch && game.plungerPulling) {
+                    releasePlunger();
+                }
+            }
+
+            canvas.addEventListener('touchstart', updatePlayfieldTouches, { passive: false });
+            canvas.addEventListener('touchmove', updatePlayfieldTouches, { passive: false });
+            canvas.addEventListener('touchend', updatePlayfieldTouches, { passive: false });
+
+            // UI Buttons
+            function togglePause() {
+                if (game.status === 'PLAYING') {
+                    game.status = 'PAUSED';
+                    pauseOverlay.classList.remove('hidden');
+                    iconPause.className = 'fa-solid fa-play text-xs sm:text-sm';
+                } else if (game.status === 'PAUSED') {
+                    game.status = 'PLAYING';
+                    pauseOverlay.classList.add('hidden');
+                    iconPause.className = 'fa-solid fa-pause text-xs sm:text-sm';
+                }
+            }
+
+            btnStart.addEventListener('click', startNewGame);
+            btnRestart.addEventListener('click', startNewGame);
+            btnPlayAgain.addEventListener('click', startNewGame);
+            btnPause.addEventListener('click', togglePause);
+            btnResume.addEventListener('click', togglePause);
+            btnNudge.addEventListener('click', triggerTableNudge);
+
+            btnSound.addEventListener('click', () => {
+                sfx.muted = !sfx.muted;
+                iconSound.className = sfx.muted
+                    ? 'fa-solid fa-volume-xmark text-xs sm:text-sm text-slate-500'
+                    : 'fa-solid fa-volume-high text-xs sm:text-sm text-cyan-400';
+            });
+
+            window.addEventListener('resize', resizeCabinet);
+
+            window.onload = function () {
+                loadHighScore();
+                resizeCabinet();
+                requestAnimationFrame(gameLoop);
+            };
+        })();
+    </script>
+</body>
+</html>
