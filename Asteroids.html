@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Vector Asteroids Arcade</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Orbitron:wght@600;800;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --neon-cyan: #06b6d4;
+            --neon-pink: #f43f5e;
+            --neon-amber: #f59e0b;
+            --neon-emerald: #10b981;
+            --bg-space: #03060f;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-space);
+            background-image:
+                radial-gradient(circle at 20% 25%, rgba(6, 182, 212, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 80% 75%, rgba(168, 85, 247, 0.12) 0%, transparent 50%);
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .font-arcade {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+
+        .font-vector {
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* Arcade Buttons */
+        .btn-arcade {
+            position: relative;
+            transition: all 0.14s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-arcade:active, .btn-arcade.pressed {
+            transform: translateY(2px) scale(0.95);
+        }
+
+        .btn-cyan {
+            background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+            box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+            color: #030914;
+        }
+        .btn-cyan:hover {
+            background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+            box-shadow: 0 6px 25px -2px rgba(6, 182, 212, 0.75);
+        }
+
+        .btn-slate {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+        }
+        .btn-slate:hover {
+            border-color: #64748b;
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+        }
+
+        /* Settings Option Pill */
+        .option-pill {
+            transition: all 0.18s ease;
+            border: 2px solid #1e293b;
+            background: rgba(15, 23, 42, 0.75);
+        }
+        .option-pill:hover {
+            border-color: #334155;
+        }
+        .option-pill.selected {
+            border-color: #06b6d4;
+            background: rgba(6, 182, 212, 0.16);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+            color: #ffffff;
+        }
+
+        /* Canvas CRT Vector Frame */
+        #space-frame {
+            box-shadow:
+                0 0 45px rgba(0, 0, 0, 0.95),
+                0 0 22px rgba(6, 182, 212, 0.22),
+                inset 0 0 20px rgba(6, 182, 212, 0.12);
+            border: 2px solid #1e293b;
+            background-color: #03060f;
+        }
+
+        /* Touch Controls Styling */
+        .touch-ctrl-btn {
+            background: rgba(15, 23, 42, 0.82);
+            border: 1.5px solid rgba(56, 189, 248, 0.45);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(6, 182, 212, 0.12);
+            backdrop-filter: blur(6px);
+            transition: transform 0.08s ease, background-color 0.08s ease, border-color 0.08s ease;
+        }
+        .touch-ctrl-btn:active, .touch-ctrl-btn.active-touch {
+            background: rgba(6, 182, 212, 0.35) !important;
+            border-color: #22d3ee !important;
+            transform: scale(0.93);
+            box-shadow: 0 0 18px rgba(6, 182, 212, 0.6);
+        }
+
+        .touch-fire-btn {
+            background: rgba(88, 28, 45, 0.75);
+            border: 1.5px solid rgba(244, 63, 94, 0.65);
+            box-shadow: 0 4px 16px rgba(244, 63, 94, 0.3), inset 0 0 12px rgba(244, 63, 94, 0.2);
+        }
+        .touch-fire-btn:active, .touch-fire-btn.active-touch {
+            background: rgba(244, 63, 94, 0.5) !important;
+            border-color: #fda4af !important;
+            transform: scale(0.93);
+            box-shadow: 0 0 22px rgba(244, 63, 94, 0.8);
+        }
+
+        .touch-hyper-btn {
+            background: rgba(69, 45, 15, 0.75);
+            border: 1.5px solid rgba(245, 158, 11, 0.65);
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.25);
+        }
+        .touch-hyper-btn:active, .touch-hyper-btn.active-touch {
+            background: rgba(245, 158, 11, 0.5) !important;
+            border-color: #fde68a !important;
+            transform: scale(0.93);
+        }
+
+        @keyframes vectorPulse {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.65)); }
+            50% { filter: drop-shadow(0 0 18px rgba(168, 85, 247, 0.9)); }
+        }
+        .vector-glow {
+            animation: vectorPulse 3s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-slate-100 h-screen w-screen flex flex-col items-center justify-between p-1.5 sm:p-3 select-none overflow-hidden">
+
+    <!-- ================= TOP TELEMETRY HUD BAR ================= -->
+    <header class="w-full max-w-6xl bg-slate-900/85 backdrop-blur-md border border-slate-800/90 rounded-2xl px-3 sm:px-5 py-2 shadow-lg z-20 shrink-0">
+        <div class="flex items-center justify-between gap-2">
+            <!-- Brand, Wave & Active Powerup -->
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-inner">
+                    <i class="fa-solid fa-shuttle-space -rotate-45 text-sm sm:text-base"></i>
+                </div>
+                <div>
+                    <h1 class="font-vector font-extrabold text-xs sm:text-base tracking-wider text-white leading-none">
+                        ASTEROIDS<span class="text-cyan-400">.VEC</span>
+                    </h1>
+                    <div class="flex items-center space-x-1.5 mt-1">
+                        <span id="hud-wave" class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 bg-cyan-950 text-cyan-300 border border-cyan-800/60 rounded">WAVE 1</span>
+                        <span id="hud-powerup" class="hidden text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.2 bg-amber-500/20 text-amber-300 border border-amber-500/50 rounded animate-pulse">SPREAD SHOT</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Score, High Score & Lives Vector Icons -->
+            <div class="flex items-center space-x-3 sm:space-x-6">
+                <!-- Remaining Ship Lives -->
+                <div class="hidden md:flex flex-col items-end">
+                    <span class="text-[9px] uppercase tracking-widest text-slate-400 font-semibold">Ships</span>
+                    <div id="hud-lives-desktop" class="flex items-center space-x-1.5 mt-0.5"></div>
+                </div>
+
+                <div class="text-right">
+                    <p class="text-[9px] sm:text-[10px] uppercase tracking-widest text-slate-400 font-semibold">Score</p>
+                    <p id="hud-score" class="font-vector font-bold text-base sm:text-2xl text-cyan-400 leading-tight">0</p>
+                </div>
+
+                <div class="h-6 w-[1px] bg-slate-800"></div>
+
+                <div class="text-right">
+                    <p class="text-[9px] sm:text-[10px] uppercase tracking-widest text-amber-400/90 font-semibold flex items-center justify-end gap-1">
+                        <i class="fa-solid fa-trophy text-[8px]"></i> High
+                    </p>
+                    <p id="hud-high" class="font-vector font-bold text-base sm:text-2xl text-amber-400 leading-tight">0</p>
+                </div>
+            </div>
+
+            <!-- Right Action Buttons: Sound, Settings, Pause -->
+            <div class="flex items-center space-x-1.5">
+                <button id="btn-sound" title="Toggle Audio" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-cyan-400 flex items-center justify-center transition border border-slate-700/70">
+                    <i id="icon-sound" class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
+                </button>
+                <button id="btn-top-settings" title="Game Settings" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition border border-slate-700/70">
+                    <i class="fa-solid fa-sliders text-xs sm:text-sm"></i>
+                </button>
+                <button id="btn-pause" title="Pause Game (P or Esc)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition border border-slate-700/70 hidden">
+                    <i id="icon-pause" class="fa-solid fa-pause text-xs sm:text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile-only secondary mini bar for Lives & Shield/Hyperspace readiness -->
+        <div class="flex md:hidden items-center justify-between pt-1.5 mt-1.5 border-t border-slate-800/80 text-[10px]">
+            <div class="flex items-center space-x-1.5">
+                <span class="uppercase text-slate-400 font-bold">Ships:</span>
+                <div id="hud-lives-mobile" class="flex items-center space-x-1"></div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span id="hud-shield-status" class="text-emerald-400 font-semibold"><i class="fa-solid fa-shield-halved mr-1"></i>Shield/Warp Ready</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= MAIN SPACE SECTOR CANVAS AREA ================= -->
+    <main id="sector-container" class="relative flex-1 w-full max-w-6xl flex items-center justify-center my-1 overflow-hidden min-h-0">
+        <div id="space-frame" class="relative w-full h-full rounded-2xl overflow-hidden flex items-center justify-center">
+            <canvas id="asteroids-canvas" class="block w-full h-full"></canvas>
+
+            <!-- Wave Announcement Banner -->
+            <div id="wave-banner" class="absolute top-12 left-1/2 -translate-x-1/2 pointer-events-none z-20 hidden text-center">
+                <div class="bg-slate-950/85 border border-cyan-500/50 px-6 py-2 rounded-2xl shadow-2xl">
+                    <p id="wave-banner-title" class="font-vector font-extrabold text-lg sm:text-2xl tracking-widest text-cyan-400 uppercase">SECTOR WAVE 1</p>
+                    <p id="wave-banner-sub" class="text-[11px] text-slate-400 uppercase tracking-wider">Clear all asteroid hazards</p>
+                </div>
+            </div>
+
+            <!-- 1. MAIN MENU OVERLAY -->
+            <div id="menu-overlay" class="absolute inset-0 bg-slate-950/88 backdrop-blur-md flex flex-col items-center justify-center p-5 text-center z-30 overflow-y-auto">
+                <!-- Vector Ship & Asteroid SVG Emblem -->
+                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center mb-3 shadow-lg vector-glow">
+                    <svg class="w-10 h-10 sm:w-12 sm:h-12" viewBox="0 0 100 100" fill="none">
+                        <polygon points="50,12 82,84 50,68 18,84" stroke="#22d3ee" stroke-width="5" stroke-linejoin="round" fill="rgba(6,182,212,0.15)" />
+                        <polygon points="40,74 50,94 60,74" stroke="#f59e0b" stroke-width="4" stroke-linejoin="round" />
+                    </svg>
+                </div>
+
+                <h2 class="font-vector font-black text-3xl sm:text-5xl tracking-wider text-white mb-1 vector-glow">
+                    NEON <span class="text-cyan-400">ASTEROIDS</span>
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400 max-w-md mb-4">
+                    Pilot your vector starfighter through deep-space boulder fields, outgun alien saucers, and shoot or fly into glowing weapon cores!
+                </p>
+
+                <!-- High Score & Scoring Legend -->
+                <div class="grid grid-cols-2 gap-2.5 w-full max-w-sm bg-slate-900/90 border border-slate-800 rounded-xl p-3 mb-5 text-left text-[11px]">
+                    <div class="col-span-2 flex items-center justify-between pb-2 mb-1 border-b border-slate-800">
+                        <span class="text-slate-400 uppercase font-bold"><i class="fa-solid fa-trophy text-amber-400 mr-1.5"></i>High Score Record</span>
+                        <span id="menu-high-score" class="font-vector font-extrabold text-base text-amber-400">0</span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-300">
+                        <span>Large / Med Rock:</span>
+                        <strong class="text-cyan-400 font-mono">20 / 50</strong>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-300">
+                        <span>Small Rock:</span>
+                        <strong class="text-cyan-400 font-mono">100 pts</strong>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-300">
+                        <span>Large Saucer:</span>
+                        <strong class="text-rose-400 font-mono">200 pts</strong>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-300">
+                        <span>Small Sniper UFO:</span>
+                        <strong class="text-rose-400 font-mono">1000 pts</strong>
+                    </div>
+                </div>
+
+                <!-- Current Settings Summary Pill -->
+                <div id="menu-settings-pill" class="text-[11px] text-slate-300 bg-slate-900/80 border border-slate-800 rounded-full px-4 py-1.5 mb-5 flex flex-wrap items-center justify-center gap-2">
+                    <span>Theme: <strong class="text-cyan-400">Neon Cyan</strong></span>
+                    <span class="text-slate-600">•</span>
+                    <span>Difficulty: <strong class="text-emerald-400">Normal</strong></span>
+                    <span class="text-slate-600">•</span>
+                    <span>Touch: <strong class="text-amber-400">Arcade Buttons</strong></span>
+                </div>
+
+                <!-- Play & Settings Buttons -->
+                <div class="grid grid-cols-2 gap-3 w-full max-w-sm">
+                    <button id="btn-play" class="btn-arcade btn-cyan font-arcade font-bold text-base sm:text-lg py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-sm"></i>
+                        <span>LAUNCH SHIP</span>
+                    </button>
+                    <button id="btn-open-settings" class="btn-arcade btn-slate text-white font-arcade font-bold text-base sm:text-lg py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-sliders text-cyan-400 text-sm"></i>
+                        <span>SETTINGS</span>
+                    </button>
+                </div>
+
+                <!-- Controls Quick Reference -->
+                <div class="mt-5 pt-3 border-t border-slate-800/80 w-full max-w-md grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+                    <div class="bg-slate-900/50 rounded-lg p-2 border border-slate-800/60">
+                        <p class="font-bold text-slate-200 mb-0.5"><i class="fa-solid fa-keyboard text-cyan-400 mr-1"></i>PC / Laptop Keys</p>
+                        <p>Rotate: A/D or ◄/► • Thrust: W/▲</p>
+                        <p>Fire: Space/Z • Shield/Warp: S/▼/Shift</p>
+                    </div>
+                    <div class="bg-slate-900/50 rounded-lg p-2 border border-slate-800/60">
+                        <p class="font-bold text-slate-200 mb-0.5"><i class="fa-solid fa-mobile-screen text-amber-400 mr-1"></i>Mobile / Touch</p>
+                        <p>Left: Turn / Thrust (or Joystick)</p>
+                        <p>Right: Hold Fire & Shield/Hyperspace</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. SETTINGS MODAL OVERLAY -->
+            <div id="settings-overlay" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 z-40 hidden overflow-y-auto">
+                <div class="w-full max-w-md mx-auto my-auto space-y-4">
+                    <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-sliders text-cyan-400 text-lg"></i>
+                            <h3 class="font-arcade font-bold text-xl text-white tracking-wide">SHIP & DISPLAY SETTINGS</h3>
+                        </div>
+                        <button id="btn-close-settings" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Vector Visual Theme -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            <i class="fa-solid fa-palette text-cyan-400 mr-1"></i> Vector Display Theme
+                        </label>
+                        <div class="grid grid-cols-3 gap-2" id="setting-theme-group">
+                            <button type="button" data-theme="neon" class="option-pill selected rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-cyan-300">NEON CYBER</button>
+                            <button type="button" data-theme="classic" class="option-pill rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-white">1979 CLASSIC</button>
+                            <button type="button" data-theme="phosphor" class="option-pill rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-emerald-400">GREEN CRT</button>
+                        </div>
+                    </div>
+
+                    <!-- Game Difficulty -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            <i class="fa-solid fa-meteor text-rose-400 mr-1"></i> Sector Difficulty
+                        </label>
+                        <div class="grid grid-cols-3 gap-2" id="setting-diff-group">
+                            <button type="button" data-diff="cadet" class="option-pill rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-slate-200">CADET (EASY)</button>
+                            <button type="button" data-diff="normal" class="option-pill selected rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-slate-200">COMMANDER</button>
+                            <button type="button" data-diff="ace" class="option-pill rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-rose-400">ACE PILOT</button>
+                        </div>
+                    </div>
+
+                    <!-- Mobile / Touch Control Layout -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                            <i class="fa-solid fa-gamepad text-amber-400 mr-1"></i> Touch Steering Style
+                        </label>
+                        <div class="grid grid-cols-2 gap-2" id="setting-touch-group">
+                            <button type="button" data-touch="buttons" class="option-pill selected rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-slate-200">ARCADE BUTTONS (◄ ► ▲)</button>
+                            <button type="button" data-touch="joystick" class="option-pill rounded-xl py-2.5 px-2 text-center font-arcade font-bold text-xs text-slate-200">VIRTUAL JOYSTICK</button>
+                        </div>
+                    </div>
+
+                    <!-- Laptop Mouse Aim Assist Toggle -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+                        <div class="pr-2">
+                            <p class="text-xs font-bold text-white"><i class="fa-solid fa-computer-mouse text-cyan-400 mr-1.5"></i>Mouse / Trackpad Aim & Fire</p>
+                            <p class="text-[10px] text-slate-400">Point cursor to aim ship, Left-Click to Fire, Right-Click to Thrust</p>
+                        </div>
+                        <button id="toggle-mouse-aim" type="button" class="w-11 h-6 rounded-full bg-slate-700 relative transition-colors flex items-center p-0.5 shrink-0">
+                            <div id="knob-mouse-aim" class="w-5 h-5 rounded-full bg-white shadow transform transition-transform translate-x-0"></div>
+                        </button>
+                    </div>
+
+                    <button id="btn-save-settings" class="btn-arcade btn-cyan w-full font-arcade font-bold text-base py-3 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-check"></i>
+                        <span>SAVE & APPLY</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. PAUSE OVERLAY -->
+            <div id="pause-overlay" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-30 hidden">
+                <div class="w-14 h-14 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-cyan-400 mb-3">
+                    <i class="fa-solid fa-pause text-2xl"></i>
+                </div>
+                <h3 class="font-vector font-bold text-2xl sm:text-3xl text-white tracking-wider mb-1">SYSTEM PAUSED</h3>
+                <p class="text-xs text-slate-400 mb-6">Awaiting pilot command to resume mission</p>
+                <div class="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+                    <button id="btn-resume" class="btn-arcade btn-cyan flex-1 font-arcade font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-play text-xs"></i>
+                        <span>RESUME</span>
+                    </button>
+                    <button id="btn-pause-menu" class="btn-arcade btn-slate flex-1 text-white font-arcade font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-house text-xs"></i>
+                        <span>MAIN MENU</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. GAME OVER OVERLAY -->
+            <div id="gameover-overlay" class="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 hidden">
+                <div class="w-16 h-16 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-500 mb-3 shadow-lg">
+                    <i class="fa-solid fa-explosion text-3xl"></i>
+                </div>
+                <h3 class="font-vector font-black text-3xl sm:text-4xl text-white tracking-wider mb-1">MISSION <span class="text-rose-500">OVER</span></h3>
+                <p id="gameover-record-badge" class="hidden text-xs text-amber-400 font-bold uppercase tracking-widest mb-3 animate-bounce">
+                    ★ NEW SECTOR HIGH SCORE RECORD! ★
+                </p>
+
+                <div class="grid grid-cols-3 gap-2 w-full max-w-xs bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 mb-6">
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-400 font-bold">Score</p>
+                        <p id="final-score" class="font-vector font-bold text-lg sm:text-xl text-cyan-400">0</p>
+                    </div>
+                    <div class="border-x border-slate-800">
+                        <p class="text-[10px] uppercase text-slate-400 font-bold">Wave</p>
+                        <p id="final-wave" class="font-vector font-bold text-lg sm:text-xl text-white">1</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase text-amber-400 font-bold">Best</p>
+                        <p id="final-high" class="font-vector font-bold text-lg sm:text-xl text-amber-400">0</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+                    <button id="btn-play-again" class="btn-arcade btn-cyan font-arcade font-bold text-sm sm:text-base py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                        <span>LAUNCH AGAIN</span>
+                    </button>
+                    <button id="btn-gameover-menu" class="btn-arcade btn-slate text-white font-arcade font-bold text-sm sm:text-base py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-house text-xs"></i>
+                        <span>MAIN MENU</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= BOTTOM MULTI-TOUCH ARCADE CONTROLS BAR ================= -->
+    <footer class="w-full max-w-6xl flex items-center justify-between gap-2 px-1 sm:px-3 py-1 z-20 shrink-0">
+        <!-- LEFT SIDE: Either Arcade Buttons (Rotate Left, Rotate Right, Thrust) OR Virtual Joystick -->
+        <div id="touch-left-buttons" class="flex items-center space-x-1.5 sm:space-x-2.5">
+            <button id="ctrl-rot-left" type="button" class="touch-ctrl-btn w-14 h-12 sm:w-16 sm:h-14 rounded-2xl flex flex-col items-center justify-center text-cyan-300">
+                <i class="fa-solid fa-rotate-left text-base sm:text-lg"></i>
+                <span class="text-[9px] font-bold uppercase tracking-wider mt-0.5">LEFT</span>
+            </button>
+            <button id="ctrl-rot-right" type="button" class="touch-ctrl-btn w-14 h-12 sm:w-16 sm:h-14 rounded-2xl flex flex-col items-center justify-center text-cyan-300">
+                <i class="fa-solid fa-rotate-right text-base sm:text-lg"></i>
+                <span class="text-[9px] font-bold uppercase tracking-wider mt-0.5">RIGHT</span>
+            </button>
+            <button id="ctrl-thrust" type="button" class="touch-ctrl-btn w-16 h-12 sm:w-20 sm:h-14 rounded-2xl flex flex-col items-center justify-center text-emerald-300 border-emerald-500/50">
+                <i class="fa-solid fa-shuttle-space -rotate-90 text-base sm:text-lg"></i>
+                <span class="text-[9px] font-bold uppercase tracking-wider mt-0.5">THRUST</span>
+            </button>
+        </div>
+
+        <!-- Alternative Left Virtual Joystick Pad (Hidden unless selected in Settings) -->
+        <div id="touch-left-joystick" class="hidden flex items-center space-x-2">
+            <div id="joystick-zone" class="relative w-28 h-14 sm:w-32 sm:h-16 rounded-2xl bg-slate-900/90 border border-cyan-500/40 flex items-center justify-center touch-none">
+                <span class="text-[9px] uppercase tracking-widest text-slate-500 pointer-events-none">DRAG STEER & THRUST</span>
+                <div id="joystick-nub" class="w-8 h-8 rounded-full bg-cyan-400/80 border-2 border-white shadow-[0_0_12px_#06b6d4] absolute pointer-events-none transition-transform duration-75"></div>
+            </div>
+        </div>
+
+        <!-- CENTER KEYBOARD HINT (Desktop/Laptop only) -->
+        <div class="hidden lg:flex flex-col items-center text-[11px] text-slate-400">
+            <span><strong class="text-cyan-400">WASD / Arrows</strong> to Steer & Thrust • <strong class="text-rose-400">Space</strong> to Fire • <strong class="text-amber-400">Shift / S</strong> for Shield + Warp</span>
+        </div>
+
+        <!-- RIGHT SIDE: Shield/Hyperspace & Rapid Fire Buttons -->
+        <div class="flex items-center space-x-1.5 sm:space-x-2.5">
+            <button id="ctrl-hyperspace" type="button" class="touch-ctrl-btn touch-hyper-btn w-16 h-12 sm:w-24 sm:h-14 rounded-2xl flex flex-col items-center justify-center text-amber-300">
+                <i class="fa-solid fa-shield-halved text-base sm:text-lg"></i>
+                <span class="text-[9px] font-bold uppercase tracking-wider mt-0.5">SHIELD/WARP</span>
+            </button>
+            <button id="ctrl-fire" type="button" class="touch-ctrl-btn touch-fire-btn w-20 h-12 sm:w-28 sm:h-14 rounded-2xl flex flex-col items-center justify-center text-rose-200">
+                <i class="fa-solid fa-crosshairs text-base sm:text-xl"></i>
+                <span class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider mt-0.5">FIRE LASER</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- ================= ASTEROIDS VECTOR ENGINE & PROCEDURAL AUDIO ================= -->
+    <script>
+        (function () {
+            "use strict";
+
+            // ============================================================================
+            // 1. PROCEDURAL WEB AUDIO SYNTHESIZER (Heartbeat Thump, Lasers, Explosions, UFO)
+            // ============================================================================
+            class AsteroidsAudio {
+                constructor() {
+                    this.ctx = null;
+                    this.muted = false;
+                    this.beatToggle = false;
+                    this.beatTimer = 0;
+                    this.ufoTimer = 0;
+                    this.thrustTimer = 0;
+                }
+
+                init() {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                }
+
+                playTone(freq, type, duration, vol = 0.14, endFreq = null) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = type;
+                        osc.frequency.setValueAtTime(freq, now);
+                        if (endFreq !== null) {
+                            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+                        }
+
+                        gain.gain.setValueAtTime(vol, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + duration);
+                    } catch (e) {}
+                }
+
+                // Synthesized White-Noise Explosion Crunch
+                playExplosion(size = 3) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const duration = size === 3 ? 0.42 : size === 2 ? 0.28 : 0.18;
+                        const bufferSize = this.ctx.sampleRate * duration;
+                        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            data[i] = Math.random() * 2 - 1;
+                        }
+
+                        const noise = this.ctx.createBufferSource();
+                        noise.buffer = buffer;
+
+                        const filter = this.ctx.createBiquadFilter();
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(size === 3 ? 260 : size === 2 ? 480 : 820, this.ctx.currentTime);
+
+                        const gain = this.ctx.createGain();
+                        gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                        noise.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(this.ctx.destination);
+
+                        noise.start();
+                    } catch (e) {}
+                }
+
+                laser(isSpread = false) {
+                    this.playTone(isSpread ? 880 : 720, 'sawtooth', 0.11, 0.12, 130);
+                }
+
+                ufoLaser() {
+                    this.playTone(540, 'square', 0.13, 0.1, 220);
+                }
+
+                // Classic 2-note alternating low-frequency background pulse
+                updateHeartbeat(dt, remainingAsteroids) {
+                    if (this.muted) return;
+                    // Interval shrinks as fewer asteroids remain, building arcade tension!
+                    const ratio = Math.min(1, Math.max(0, remainingAsteroids / 18));
+                    const interval = 0.19 + ratio * 0.65;
+
+                    this.beatTimer += dt;
+                    if (this.beatTimer >= interval) {
+                        this.beatTimer = 0;
+                        const freq = this.beatToggle ? 73.42 : 65.41; // D2 and C2
+                        this.beatToggle = !this.beatToggle;
+                        this.playTone(freq, 'triangle', 0.09, 0.18, freq * 0.85);
+                    }
+                }
+
+                updateThruster(dt, isThrusting) {
+                    if (this.muted || !isThrusting) return;
+                    this.thrustTimer += dt;
+                    if (this.thrustTimer >= 0.065) {
+                        this.thrustTimer = 0;
+                        this.playTone(92 + Math.random() * 25, 'sawtooth', 0.06, 0.06, 55);
+                    }
+                }
+
+                updateUfoSiren(dt, ufo) {
+                    if (this.muted || !ufo) return;
+                    this.ufoTimer += dt;
+                    const interval = ufo.isSmall ? 0.16 : 0.26;
+                    if (this.ufoTimer >= interval) {
+                        this.ufoTimer = 0;
+                        const base = ufo.isSmall ? 920 : 520;
+                        this.playTone(base, 'sine', interval * 0.9, 0.08, base * 1.35);
+                    }
+                }
+
+                shieldActivate() {
+                    this.playTone(340, 'sine', 0.25, 0.15, 760);
+                }
+
+                powerupCollect() {
+                    const notes = [523.25, 659.25, 783.99, 1046.5];
+                    notes.forEach((f, idx) => {
+                        setTimeout(() => this.playTone(f, 'triangle', 0.1, 0.14), idx * 50);
+                    });
+                }
+            }
+
+            const sfx = new AsteroidsAudio();
+
+            // ============================================================================
+            // 2. THEMES, DIFFICULTY PRESETS & GAME STATE
+            // ============================================================================
+            const STORAGE_KEY_HIGH = 'neon_vector_asteroids_high_v1';
+
+            const THEMES = {
+                neon: {
+                    bg: '#03060f',
+                    ship: '#22d3ee',
+                    thrust: '#f59e0b',
+                    rockLarge: '#a855f7',
+                    rockMed: '#38bdf8',
+                    rockSmall: '#2dd4bf',
+                    ufo: '#f43f5e',
+                    bullet: '#fde047',
+                    ufoBullet: '#fb7185',
+                    shield: '#10b981'
+                },
+                classic: {
+                    bg: '#050505',
+                    ship: '#ffffff',
+                    thrust: '#ffffff',
+                    rockLarge: '#e2e8f0',
+                    rockMed: '#f8fafc',
+                    rockSmall: '#ffffff',
+                    ufo: '#ffffff',
+                    bullet: '#ffffff',
+                    ufoBullet: '#ffffff',
+                    shield: '#94a3b8'
+                },
+                phosphor: {
+                    bg: '#020b05',
+                    ship: '#4ade80',
+                    thrust: '#86efac',
+                    rockLarge: '#22c55e',
+                    rockMed: '#4ade80',
+                    rockSmall: '#86efac',
+                    ufo: '#bef264',
+                    bullet: '#dcfce7',
+                    ufoBullet: '#a3e635',
+                    shield: '#34d399'
+                }
+            };
+
+            const DIFFICULTIES = {
+                cadet:  { startRocks: 3, speedMult: 0.8,  ufoRate: 20, label: 'Cadet' },
+                normal: { startRocks: 4, speedMult: 1.0,  ufoRate: 15, label: 'Normal' },
+                ace:    { startRocks: 5, speedMult: 1.28, ufoRate: 11, label: 'Ace Pilot' }
+            };
+
+            let config = {
+                theme: 'neon',          // 'neon' | 'classic' | 'phosphor'
+                difficulty: 'normal',   // 'cadet' | 'normal' | 'ace'
+                touchStyle: 'buttons',  // 'buttons' | 'joystick'
+                mouseAim: false
+            };
+
+            let state = {
+                status: 'MENU',         // 'MENU' | 'PLAYING' | 'PAUSED' | 'GAMEOVER'
+                score: 0,
+                highScore: 0,
+                nextExtraLifeScore: 10000,
+                lives: 3,
+                wave: 1,
+                waveDelayTimer: 0,
+                shakeTimer: 0,
+                shakeIntensity: 0,
+                ufoSpawnTimer: 12,
+                stars: [],
+                asteroids: [],
+                bullets: [],
+                ufoBullets: [],
+                particles: [],
+                debrisLines: [],
+                powerups: [],
+                floatingTexts: [],
+                ufo: null,
+                ship: null
+            };
+
+            // Input Controller State
+            const input = {
+                left: false,
+                right: false,
+                thrust: false,
+                fire: false,
+                hyper: false,
+                mouseX: 0,
+                mouseY: 0,
+                mouseActive: false,
+                joyActive: false,
+                joyAngle: 0,
+                joyThrust: false
+            };
+
+            // ============================================================================
+            // 3. DOM ELEMENTS
+            // ============================================================================
+            const canvas = document.getElementById('asteroids-canvas');
+            const ctx = canvas.getContext('2d');
+            const spaceFrame = document.getElementById('space-frame');
+
+            const hudScore = document.getElementById('hud-score');
+            const hudHigh = document.getElementById('hud-high');
+            const hudWave = document.getElementById('hud-wave');
+            const hudPowerup = document.getElementById('hud-powerup');
+            const hudLivesDesktop = document.getElementById('hud-lives-desktop');
+            const hudLivesMobile = document.getElementById('hud-lives-mobile');
+            const hudShieldStatus = document.getElementById('hud-shield-status');
+            const menuHighScore = document.getElementById('menu-high-score');
+            const menuSettingsPill = document.getElementById('menu-settings-pill');
+
+            const waveBanner = document.getElementById('wave-banner');
+            const waveBannerTitle = document.getElementById('wave-banner-title');
+            const waveBannerSub = document.getElementById('wave-banner-sub');
+
+            const menuOverlay = document.getElementById('menu-overlay');
+            const settingsOverlay = document.getElementById('settings-overlay');
+            const pauseOverlay = document.getElementById('pause-overlay');
+            const gameoverOverlay = document.getElementById('gameover-overlay');
+
+            const btnPlay = document.getElementById('btn-play');
+            const btnOpenSettings = document.getElementById('btn-open-settings');
+            const btnTopSettings = document.getElementById('btn-top-settings');
+            const btnCloseSettings = document.getElementById('btn-close-settings');
+            const btnSaveSettings = document.getElementById('btn-save-settings');
+            const btnPause = document.getElementById('btn-pause');
+            const iconPause = document.getElementById('icon-pause');
+            const btnResume = document.getElementById('btn-resume');
+            const btnPauseMenu = document.getElementById('btn-pause-menu');
+            const btnPlayAgain = document.getElementById('btn-play-again');
+            const btnGameoverMenu = document.getElementById('btn-gameover-menu');
+            const btnSound = document.getElementById('btn-sound');
+            const iconSound = document.getElementById('icon-sound');
+
+            const toggleMouseAim = document.getElementById('toggle-mouse-aim');
+            const knobMouseAim = document.getElementById('knob-mouse-aim');
+            const touchLeftButtons = document.getElementById('touch-left-buttons');
+            const touchLeftJoystick = document.getElementById('touch-left-joystick');
+            const joystickZone = document.getElementById('joystick-zone');
+            const joystickNub = document.getElementById('joystick-nub');
+
+            const ctrlRotLeft = document.getElementById('ctrl-rot-left');
+            const ctrlRotRight = document.getElementById('ctrl-rot-right');
+            const ctrlThrust = document.getElementById('ctrl-thrust');
+            const ctrlHyperspace = document.getElementById('ctrl-hyperspace');
+            const ctrlFire = document.getElementById('ctrl-fire');
+
+            // ============================================================================
+            // 4. ENTITY FACTORIES (Starfield, Ship, Jagged Asteroids, UFOs, Power-ups)
+            // ============================================================================
+            function initStars() {
+                state.stars = [];
+                const count = 75;
+                for (let i = 0; i < count; i++) {
+                    state.stars.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        size: Math.random() < 0.8 ? 1.2 : 2.2,
+                        alpha: 0.2 + Math.random() * 0.6,
+                        twinkleSpeed: 1 + Math.random() * 3
+                    });
+                }
+            }
+
+            function createShip() {
+                return {
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: 0,
+                    vy: 0,
+                    angle: -Math.PI / 2, // Pointing straight up
+                    radius: 15,
+                    dead: false,
+                    respawnTimer: 0,
+                    invulnTimer: 2.8,    // Spawn invulnerability
+                    shieldTimer: 0,      // Active defensive shield
+                    hyperCooldown: 0,    // Cooldown for Shield/Hyperspace button
+                    fireCooldown: 0,
+                    weaponType: 'NORMAL', // 'NORMAL' | 'SPREAD' | 'RAPID'
+                    weaponTimer: 0
+                };
+            }
+
+            // Generate jagged procedural vector polygon for an asteroid
+            function createAsteroid(x, y, sizeCategory) {
+                // sizeCategory: 3 = Large (r=44), 2 = Medium (r=24), 1 = Small (r=12)
+                const baseRadius = sizeCategory === 3 ? 44 : sizeCategory === 2 ? 24 : 12;
+                const verticesCount = sizeCategory === 3 ? 11 : sizeCategory === 2 ? 9 : 7;
+                const offsets = [];
+                for (let i = 0; i < verticesCount; i++) {
+                    offsets.push(0.74 + Math.random() * 0.45);
+                }
+
+                const diffMult = DIFFICULTIES[config.difficulty].speedMult;
+                const speedScale = (4 - sizeCategory) * 42 * diffMult;
+                const speed = speedScale * (0.75 + Math.random() * 0.65);
+                const angle = Math.random() * Math.PI * 2;
+
+                return {
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: baseRadius,
+                    size: sizeCategory,
+                    angle: Math.random() * Math.PI * 2,
+                    rotSpeed: (Math.random() - 0.5) * 2.2,
+                    offsets
+                };
+            }
+
+            function spawnWaveAsteroids() {
+                state.asteroids = [];
+                const baseCount = DIFFICULTIES[config.difficulty].startRocks;
+                const count = Math.min(11, baseCount + (state.wave - 1));
+                const shipX = state.ship ? state.ship.x : canvas.width / 2;
+                const shipY = state.ship ? state.ship.y : canvas.height / 2;
+                const minSafeDist = 150;
+
+                for (let i = 0; i < count; i++) {
+                    let ax, ay;
+                    let attempts = 0;
+                    do {
+                        ax = Math.random() * canvas.width;
+                        ay = Math.random() * canvas.height;
+                        attempts++;
+                    } while (Math.hypot(ax - shipX, ay - shipY) < minSafeDist && attempts < 20);
+
+                    state.asteroids.push(createAsteroid(ax, ay, 3));
+                }
+
+                hudWave.textContent = `WAVE ${state.wave}`;
+                waveBannerTitle.textContent = `SECTOR WAVE ${state.wave}`;
+                waveBannerSub.textContent = `${count} Large Asteroid Signatures Detected`;
+                waveBanner.classList.remove('hidden');
+                setTimeout(() => waveBanner.classList.add('hidden'), 2000);
+            }
+
+            function spawnUFO() {
+                // Small sniper UFO becomes more frequent in higher waves or higher score
+                const isSmall = (state.wave >= 2 && Math.random() < 0.42) || state.score >= 8000;
+                const fromLeft = Math.random() < 0.5;
+                const speed = (isSmall ? 165 : 115) * DIFFICULTIES[config.difficulty].speedMult;
+
+                state.ufo = {
+                    x: fromLeft ? -25 : canvas.width + 25,
+                    y: 60 + Math.random() * (canvas.height - 120),
+                    vx: fromLeft ? speed : -speed,
+                    vy: (Math.random() - 0.5) * 70,
+                    radius: isSmall ? 14 : 24,
+                    isSmall,
+                    dirTimer: 1.8,
+                    fireTimer: 1.2
+                };
+            }
+
+            function maybeSpawnPowerup(x, y, guaranteed = false) {
+                if (!guaranteed && Math.random() > 0.22) return;
+                const types = [
+                    { type: 'SPREAD', label: 'TRIPLE LASER', short: '3X', color: '#f59e0b' },
+                    { type: 'RAPID',  label: 'RAPID CANNON', short: 'RP', color: '#38bdf8' },
+                    { type: 'SHIELD', label: 'ENERGY SHIELD', short: 'SH', color: '#10b981' },
+                    { type: 'BONUS',  label: 'NOVA BONUS +1500', short: '+$', color: '#c084fc' }
+                ];
+                const pick = types[Math.floor(Math.random() * types.length)];
+                const angle = Math.random() * Math.PI * 2;
+                state.powerups.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * 32,
+                    vy: Math.sin(angle) * 32,
+                    radius: 15,
+                    type: pick.type,
+                    label: pick.label,
+                    short: pick.short,
+                    color: pick.color,
+                    life: 12.5,
+                    pulse: 0
+                });
+            }
+
+            function collectPowerup(p, ship, viaShot = false) {
+                sfx.powerupCollect();
+                spawnVectorExplosion(p.x, p.y, p.color, 18);
+                const bonusPts = viaShot ? 250 : 150;
+
+                if (p.type === 'SHIELD') {
+                    if (ship && !ship.dead) {
+                        ship.shieldTimer = Math.max(ship.shieldTimer, 8.5);
+                    }
+                    addScore(bonusPts, p.x, p.y - 14, p.color);
+                    addFloatingText(viaShot ? 'SNIPED: SHIELD OVERCHARGE!' : 'SHIELD OVERCHARGE!', p.x, p.y, p.color);
+                } else if (p.type === 'BONUS') {
+                    addScore(1500, p.x, p.y - 14, p.color);
+                    addFloatingText(viaShot ? 'SNIPED: +1500 NOVA CORE!' : '+1500 NOVA CORE!', p.x, p.y, p.color);
+                } else {
+                    if (ship && !ship.dead) {
+                        ship.weaponType = p.type;
+                        ship.weaponTimer = 12.0;
+                    }
+                    hudPowerup.textContent = p.label;
+                    hudPowerup.classList.remove('hidden');
+                    addScore(bonusPts, p.x, p.y - 14, p.color);
+                    addFloatingText(viaShot ? `SNIPED: ${p.label}!` : `${p.label}!`, p.x, p.y, p.color);
+                }
+            }
+
+            // ============================================================================
+            // 5. PARTICLES, SHIP DEBRIS & FLOATING CALLOUTS
+            // ============================================================================
+            function spawnVectorExplosion(x, y, color, count = 18) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 35 + Math.random() * 190;
+                    state.particles.push({
+                        x,
+                        y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 0.45 + Math.random() * 0.45,
+                        maxLife: 0.9,
+                        color,
+                        size: 1.8 + Math.random() * 2.2
+                    });
+                }
+            }
+
+            // Classic disintegrating vector line segments when player ship is destroyed
+            function spawnShipDebrisLines(ship, color) {
+                const lines = [
+                    { x1: 16, y1: 0, x2: -12, y2: -11 },
+                    { x1: 16, y1: 0, x2: -12, y2: 11 },
+                    { x1: -8, y1: -8, x2: -8, y2: 8 }
+                ];
+                lines.forEach(ln => {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 30 + Math.random() * 65;
+                    state.debrisLines.push({
+                        x: ship.x,
+                        y: ship.y,
+                        vx: ship.vx * 0.3 + Math.cos(angle) * speed,
+                        vy: ship.vy * 0.3 + Math.sin(angle) * speed,
+                        rot: ship.angle,
+                        rotSpeed: (Math.random() - 0.5) * 6,
+                        ln,
+                        life: 1.5,
+                        color
+                    });
+                });
+            }
+
+            function addFloatingText(text, x, y, color = '#22d3ee') {
+                state.floatingTexts.push({
+                    text,
+                    x,
+                    y,
+                    alpha: 1.0,
+                    color
+                });
+            }
+
+            function triggerScreenShake(intensity = 6, duration = 0.22) {
+                state.shakeIntensity = intensity;
+                state.shakeTimer = duration;
+            }
+
+            // ============================================================================
+            // 6. CORE GAMEPLAY & PHYSICS UPDATE LOOP
+            // ============================================================================
+            function wrapPosition(entity, pad = 10) {
+                if (entity.x < -pad) entity.x = canvas.width + pad;
+                else if (entity.x > canvas.width + pad) entity.x = -pad;
+                if (entity.y < -pad) entity.y = canvas.height + pad;
+                else if (entity.y > canvas.height + pad) entity.y = -pad;
+            }
+
+            function addScore(points, x, y, color) {
+                state.score += points;
+                if (state.score > state.highScore) {
+                    state.highScore = state.score;
+                    saveHighScore();
+                }
+
+                // Award Extra Ship Life every 10,000 points!
+                if (state.score >= state.nextExtraLifeScore) {
+                    state.nextExtraLifeScore += 10000;
+                    state.lives = Math.min(6, state.lives + 1);
+                    sfx.powerupCollect();
+                    addFloatingText('EXTRA SHIP!', canvas.width / 2, canvas.height / 2 - 40, '#10b981');
+                    renderLivesIcons();
+                }
+
+                updateHUD();
+                if (x !== undefined && y !== undefined) {
+                    addFloatingText(`+${points}`, x, y, color);
+                }
+            }
+
+            function firePlayerWeapon(ship) {
+                const isSpread = ship.weaponType === 'SPREAD';
+                const isRapid = ship.weaponType === 'RAPID';
+                ship.fireCooldown = isRapid ? 0.11 : 0.21;
+
+                const angles = isSpread
+                    ? [ship.angle - 0.18, ship.angle, ship.angle + 0.18]
+                    : [ship.angle];
+
+                const bulletSpeed = 560;
+                angles.forEach(ang => {
+                    state.bullets.push({
+                        x: ship.x + Math.cos(ang) * 18,
+                        y: ship.y + Math.sin(ang) * 18,
+                        vx: ship.vx * 0.25 + Math.cos(ang) * bulletSpeed,
+                        vy: ship.vy * 0.25 + Math.sin(ang) * bulletSpeed,
+                        life: 1.05
+                    });
+                });
+
+                sfx.laser(isSpread);
+            }
+
+            function activateShieldOrHyperspace(ship) {
+                if (ship.dead || ship.hyperCooldown > 0) return;
+                sfx.shieldActivate();
+
+                // Grants 3.0 seconds of protective energy shield + short phase warp if surrounded
+                ship.shieldTimer = 3.0;
+                ship.hyperCooldown = 7.5;
+                spawnVectorExplosion(ship.x, ship.y, THEMES[config.theme].shield, 12);
+                addFloatingText('SHIELD ENGAGED!', ship.x, ship.y - 24, THEMES[config.theme].shield);
+            }
+
+            function destroyAsteroid(index) {
+                const rock = state.asteroids[index];
+                state.asteroids.splice(index, 1);
+
+                const theme = THEMES[config.theme];
+                const color = rock.size === 3 ? theme.rockLarge : rock.size === 2 ? theme.rockMed : theme.rockSmall;
+                const pts = rock.size === 3 ? 20 : rock.size === 2 ? 50 : 100;
+
+                sfx.playExplosion(rock.size);
+                spawnVectorExplosion(rock.x, rock.y, color, rock.size * 7);
+                triggerScreenShake(rock.size * 2.5, 0.18);
+                addScore(pts, rock.x, rock.y, color);
+
+                // Split into 2 smaller asteroids if Large (3) or Medium (2)
+                if (rock.size > 1) {
+                    state.asteroids.push(createAsteroid(rock.x, rock.y, rock.size - 1));
+                    state.asteroids.push(createAsteroid(rock.x, rock.y, rock.size - 1));
+                    if (rock.size === 2 && Math.random() < 0.12) {
+                        maybeSpawnPowerup(rock.x, rock.y, true);
+                    }
+                } else {
+                    maybeSpawnPowerup(rock.x, rock.y, false);
+                }
+            }
+
+            function killPlayerShip() {
+                const ship = state.ship;
+                if (ship.dead || ship.invulnTimer > 0 || ship.shieldTimer > 0) return;
+
+                ship.dead = true;
+                ship.respawnTimer = 2.2;
+                state.lives--;
+                renderLivesIcons();
+
+                sfx.playExplosion(3);
+                spawnVectorExplosion(ship.x, ship.y, THEMES[config.theme].ship, 28);
+                spawnShipDebrisLines(ship, THEMES[config.theme].ship);
+                triggerScreenShake(10, 0.35);
+
+                if (state.lives <= 0) {
+                    setTimeout(() => {
+                        if (state.lives <= 0 && state.status === 'PLAYING') {
+                            triggerGameOver();
+                        }
+                    }, 1800);
+                }
+            }
+
+            function updateSimulation(dt) {
+                const ship = state.ship;
+                const theme = THEMES[config.theme];
+
+                // 1. Background Heartbeat Thump
+                if (state.asteroids.length > 0 && !ship.dead) {
+                    sfx.updateHeartbeat(dt, state.asteroids.length);
+                }
+
+                // 2. Screen Shake Timer
+                if (state.shakeTimer > 0) {
+                    state.shakeTimer = Math.max(0, state.shakeTimer - dt);
+                }
+
+                // 3. Ship Movement, Rotation, Thrust & Weapons
+                if (!ship.dead) {
+                    if (ship.invulnTimer > 0) ship.invulnTimer = Math.max(0, ship.invulnTimer - dt);
+                    if (ship.shieldTimer > 0) ship.shieldTimer = Math.max(0, ship.shieldTimer - dt);
+                    if (ship.hyperCooldown > 0) ship.hyperCooldown = Math.max(0, ship.hyperCooldown - dt);
+                    if (ship.fireCooldown > 0) ship.fireCooldown = Math.max(0, ship.fireCooldown - dt);
+
+                    if (ship.weaponTimer > 0) {
+                        ship.weaponTimer -= dt;
+                        if (ship.weaponTimer <= 0) {
+                            ship.weaponType = 'NORMAL';
+                            hudPowerup.classList.add('hidden');
+                        }
+                    }
+
+                    // Update Mobile Shield Status Indicator
+                    if (ship.shieldTimer > 0) {
+                        hudShieldStatus.innerHTML = `<i class="fa-solid fa-shield-halved mr-1"></i>SHIELD ACTIVE (${ship.shieldTimer.toFixed(1)}s)`;
+                        hudShieldStatus.className = 'text-emerald-400 font-bold animate-pulse';
+                    } else if (ship.hyperCooldown > 0) {
+                        hudShieldStatus.innerHTML = `<i class="fa-solid fa-hourglass-half mr-1"></i>RECHARGING (${Math.ceil(ship.hyperCooldown)}s)`;
+                        hudShieldStatus.className = 'text-amber-400/80 font-semibold';
+                    } else {
+                        hudShieldStatus.innerHTML = `<i class="fa-solid fa-shield-halved mr-1"></i>SHIELD READY`;
+                        hudShieldStatus.className = 'text-emerald-400 font-semibold';
+                    }
+
+                    // Rotation (Keyboard / Buttons / Virtual Joystick / Mouse Aim)
+                    const rotSpeed = 4.4;
+                    if (input.joyActive) {
+                        ship.angle = input.joyAngle;
+                    } else if (config.mouseAim && input.mouseActive) {
+                        ship.angle = Math.atan2(input.mouseY - ship.y, input.mouseX - ship.x);
+                    } else {
+                        if (input.left) ship.angle -= rotSpeed * dt;
+                        if (input.right) ship.angle += rotSpeed * dt;
+                    }
+
+                    // Thrust Acceleration & Low Space Drag
+                    const isThrusting = input.thrust || (input.joyActive && input.joyThrust);
+                    if (isThrusting) {
+                        const accel = 310;
+                        ship.vx += Math.cos(ship.angle) * accel * dt;
+                        ship.vy += Math.sin(ship.angle) * accel * dt;
+                        sfx.updateThruster(dt, true);
+                    }
+
+                    // Subtle space inertia damping & max speed cap
+                    const drag = 0.55;
+                    ship.vx *= (1 - drag * dt);
+                    ship.vy *= (1 - drag * dt);
+
+                    const maxShipSpeed = 420;
+                    const curSpd = Math.hypot(ship.vx, ship.vy);
+                    if (curSpd > maxShipSpeed) {
+                        ship.vx = (ship.vx / curSpd) * maxShipSpeed;
+                        ship.vy = (ship.vy / curSpd) * maxShipSpeed;
+                    }
+
+                    ship.x += ship.vx * dt;
+                    ship.y += ship.vy * dt;
+                    wrapPosition(ship, 18);
+
+                    // Fire Weapon
+                    if (input.fire && ship.fireCooldown <= 0) {
+                        firePlayerWeapon(ship);
+                    }
+
+                    // Activate Shield / Hyperspace
+                    if (input.hyper) {
+                        input.hyper = false;
+                        activateShieldOrHyperspace(ship);
+                    }
+                } else if (state.lives > 0) {
+                    // Respawn ship when center area is clear of immediate asteroid danger
+                    ship.respawnTimer -= dt;
+                    if (ship.respawnTimer <= 0) {
+                        const centerClear = state.asteroids.every(a =>
+                            Math.hypot(a.x - canvas.width / 2, a.y - canvas.height / 2) > a.radius + 75
+                        );
+                        if (centerClear || ship.respawnTimer < -1.5) {
+                            state.ship = createShip();
+                        }
+                    }
+                }
+
+                // 4. Update Player Bullets
+                for (let i = state.bullets.length - 1; i >= 0; i--) {
+                    const b = state.bullets[i];
+                    b.x += b.vx * dt;
+                    b.y += b.vy * dt;
+                    b.life -= dt;
+                    wrapPosition(b, 4);
+                    if (b.life <= 0) state.bullets.splice(i, 1);
+                }
+
+                // 5. Update UFO & UFO Bullets
+                if (!state.ufo) {
+                    state.ufoSpawnTimer -= dt;
+                    if (state.ufoSpawnTimer <= 0 && state.asteroids.length > 0) {
+                        spawnUFO();
+                        state.ufoSpawnTimer = DIFFICULTIES[config.difficulty].ufoRate + Math.random() * 6;
+                    }
+                } else {
+                    const ufo = state.ufo;
+                    ufo.x += ufo.vx * dt;
+                    ufo.y += ufo.vy * dt;
+                    if (ufo.y < 30 || ufo.y > canvas.height - 30) ufo.vy = -ufo.vy;
+
+                    sfx.updateUfoSiren(dt, ufo);
+
+                    ufo.dirTimer -= dt;
+                    if (ufo.dirTimer <= 0) {
+                        ufo.dirTimer = 1.4 + Math.random() * 1.5;
+                        ufo.vy = (Math.random() - 0.5) * 90;
+                    }
+
+                    ufo.fireTimer -= dt;
+                    if (ufo.fireTimer <= 0 && !ship.dead) {
+                        ufo.fireTimer = ufo.isSmall ? 1.15 : 1.75;
+                        // Small UFO aims at player ship with slight spread; Large UFO shoots randomly
+                        let aimAngle = Math.random() * Math.PI * 2;
+                        if (ufo.isSmall) {
+                            aimAngle = Math.atan2(ship.y - ufo.y, ship.x - ufo.x) + (Math.random() - 0.5) * 0.22;
+                        }
+                        const spd = 340;
+                        state.ufoBullets.push({
+                            x: ufo.x,
+                            y: ufo.y,
+                            vx: Math.cos(aimAngle) * spd,
+                            vy: Math.sin(aimAngle) * spd,
+                            life: 1.35
+                        });
+                        sfx.ufoLaser();
+                    }
+
+                    // Despawn UFO if it crosses far off-screen horizontally
+                    if (ufo.x < -50 || ufo.x > canvas.width + 50) {
+                        state.ufo = null;
+                    }
+                }
+
+                for (let i = state.ufoBullets.length - 1; i >= 0; i--) {
+                    const ub = state.ufoBullets[i];
+                    ub.x += ub.vx * dt;
+                    ub.y += ub.vy * dt;
+                    ub.life -= dt;
+                    wrapPosition(ub, 4);
+
+                    if (!ship.dead && Math.hypot(ub.x - ship.x, ub.y - ship.y) < ship.radius + 3) {
+                        state.ufoBullets.splice(i, 1);
+                        killPlayerShip();
+                        continue;
+                    }
+                    if (ub.life <= 0) state.ufoBullets.splice(i, 1);
+                }
+
+                // 6. Update Asteroids & Check Collisions
+                for (let i = state.asteroids.length - 1; i >= 0; i--) {
+                    const a = state.asteroids[i];
+                    a.x += a.vx * dt;
+                    a.y += a.vy * dt;
+                    a.angle += a.rotSpeed * dt;
+                    wrapPosition(a, a.radius);
+
+                    // Check Player Bullet vs Asteroid
+                    let hitByBullet = false;
+                    for (let j = state.bullets.length - 1; j >= 0; j--) {
+                        const b = state.bullets[j];
+                        if (Math.hypot(b.x - a.x, b.y - a.y) < a.radius + 3) {
+                            state.bullets.splice(j, 1);
+                            destroyAsteroid(i);
+                            hitByBullet = true;
+                            break;
+                        }
+                    }
+                    if (hitByBullet) continue;
+
+                    // Check Player Ship vs Asteroid
+                    if (!ship.dead && Math.hypot(ship.x - a.x, ship.y - a.y) < ship.radius + a.radius * 0.85) {
+                        if (ship.shieldTimer > 0) {
+                            // Shield shatters the asteroid on contact!
+                            destroyAsteroid(i);
+                        } else if (ship.invulnTimer <= 0) {
+                            destroyAsteroid(i);
+                            killPlayerShip();
+                        }
+                    }
+                }
+
+                // 7. Check Player Bullets & Ship vs UFO
+                if (state.ufo) {
+                    const ufo = state.ufo;
+                    for (let j = state.bullets.length - 1; j >= 0; j--) {
+                        const b = state.bullets[j];
+                        if (Math.hypot(b.x - ufo.x, b.y - ufo.y) < ufo.radius + 4) {
+                            state.bullets.splice(j, 1);
+                            const pts = ufo.isSmall ? 1000 : 200;
+                            sfx.playExplosion(3);
+                            spawnVectorExplosion(ufo.x, ufo.y, theme.ufo, 24);
+                            triggerScreenShake(8, 0.25);
+                            addScore(pts, ufo.x, ufo.y, theme.ufo);
+                            maybeSpawnPowerup(ufo.x, ufo.y, true); // UFO always drops a weapon/shield core!
+                            state.ufo = null;
+                            break;
+                        }
+                    }
+
+                    if (state.ufo && !ship.dead && Math.hypot(ship.x - ufo.x, ship.y - ufo.y) < ship.radius + ufo.radius) {
+                        sfx.playExplosion(3);
+                        spawnVectorExplosion(ufo.x, ufo.y, theme.ufo, 20);
+                        state.ufo = null;
+                        if (ship.shieldTimer <= 0 && ship.invulnTimer <= 0) {
+                            killPlayerShip();
+                        }
+                    }
+                }
+
+                // 8. Update Collectible Power-ups (Collect by Shooting OR Flying into them)
+                for (let i = state.powerups.length - 1; i >= 0; i--) {
+                    const p = state.powerups[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.life -= dt;
+                    p.pulse += dt * 6;
+                    wrapPosition(p, p.radius);
+
+                    // Check if any player bullet hits the bonus power-up core
+                    let shotCollected = false;
+                    for (let j = state.bullets.length - 1; j >= 0; j--) {
+                        const b = state.bullets[j];
+                        if (Math.hypot(b.x - p.x, b.y - p.y) < p.radius + 5) {
+                            state.bullets.splice(j, 1);
+                            collectPowerup(p, ship, true);
+                            state.powerups.splice(i, 1);
+                            shotCollected = true;
+                            break;
+                        }
+                    }
+                    if (shotCollected) continue;
+
+                    // Also allow collecting by flying the ship into the bonus core
+                    if (!ship.dead && Math.hypot(ship.x - p.x, ship.y - p.y) < ship.radius + p.radius + 4) {
+                        collectPowerup(p, ship, false);
+                        state.powerups.splice(i, 1);
+                        continue;
+                    }
+
+                    if (p.life <= 0) state.powerups.splice(i, 1);
+                }
+
+                // 9. Update Particles, Ship Debris & Floating Texts
+                for (let i = state.particles.length - 1; i >= 0; i--) {
+                    const pt = state.particles[i];
+                    pt.x += pt.vx * dt;
+                    pt.y += pt.vy * dt;
+                    pt.life -= dt;
+                    if (pt.life <= 0) state.particles.splice(i, 1);
+                }
+
+                for (let i = state.debrisLines.length - 1; i >= 0; i--) {
+                    const d = state.debrisLines[i];
+                    d.x += d.vx * dt;
+                    d.y += d.vy * dt;
+                    d.rot += d.rotSpeed * dt;
+                    d.life -= dt;
+                    if (d.life <= 0) state.debrisLines.splice(i, 1);
+                }
+
+                for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+                    const ft = state.floatingTexts[i];
+                    ft.y -= dt * 32;
+                    ft.alpha -= dt * 0.95;
+                    if (ft.alpha <= 0) state.floatingTexts.splice(i, 1);
+                }
+
+                // 10. Check Wave Cleared
+                if (state.asteroids.length === 0 && !state.ufo) {
+                    state.waveDelayTimer += dt;
+                    if (state.waveDelayTimer >= 1.6) {
+                        state.waveDelayTimer = 0;
+                        state.wave++;
+                        addScore(500 * state.wave, canvas.width / 2, canvas.height / 2, '#22d3ee');
+                        spawnWaveAsteroids();
+                    }
+                }
+            }
+
+            // ============================================================================
+            // 7. VECTOR GRAPHICS RENDERER
+            // ============================================================================
+            function renderSpace() {
+                const theme = THEMES[config.theme];
+                ctx.fillStyle = theme.bg;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+                // Apply screen shake offset if active
+                if (state.shakeTimer > 0) {
+                    const dx = (Math.random() - 0.5) * state.shakeIntensity * 2;
+                    const dy = (Math.random() - 0.5) * state.shakeIntensity * 2;
+                    ctx.translate(dx, dy);
+                }
+
+                // 1. Twinkling Deep-Space Starfield
+                const nowSec = performance.now() / 1000;
+                state.stars.forEach(st => {
+                    const a = st.alpha * (0.65 + 0.35 * Math.sin(nowSec * st.twinkleSpeed));
+                    ctx.fillStyle = `rgba(226, 232, 240, ${a.toFixed(2)})`;
+                    ctx.fillRect(st.x, st.y, st.size, st.size);
+                });
+
+                // 2. Draw Jagged Vector Asteroids
+                state.asteroids.forEach(a => {
+                    const strokeColor = a.size === 3 ? theme.rockLarge : a.size === 2 ? theme.rockMed : theme.rockSmall;
+                    ctx.save();
+                    ctx.translate(a.x, a.y);
+                    ctx.rotate(a.angle);
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = 2.2;
+                    ctx.lineJoin = 'round';
+                    ctx.shadowColor = strokeColor;
+                    ctx.shadowBlur = 10;
+
+                    ctx.beginPath();
+                    const count = a.offsets.length;
+                    for (let i = 0; i < count; i++) {
+                        const theta = (i / count) * Math.PI * 2;
+                        const r = a.radius * a.offsets[i];
+                        const vx = Math.cos(theta) * r;
+                        const vy = Math.sin(theta) * r;
+                        if (i === 0) ctx.moveTo(vx, vy);
+                        else ctx.lineTo(vx, vy);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.restore();
+                });
+
+                // 3. Draw Collectible Power-up Cores (Shootable Target Reticle + Octagon Core)
+                state.powerups.forEach(p => {
+                    const scale = 1 + Math.sin(p.pulse) * 0.12;
+                    const blinkAlpha = p.life < 2.5 ? (Math.floor(p.life * 8) % 2 === 0 ? 0.35 : 1) : 1;
+                    ctx.save();
+                    ctx.globalAlpha = blinkAlpha;
+                    ctx.translate(p.x, p.y);
+
+                    // Outer rotating target reticle ring & crosshairs so players know it can be shot
+                    ctx.save();
+                    ctx.rotate(p.pulse * 0.25);
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = 1.3;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, p.radius + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // 4 sniper reticle ticks
+                    const tickIn = p.radius + 2;
+                    const tickOut = p.radius + 7;
+                    ctx.beginPath();
+                    ctx.moveTo(tickIn, 0); ctx.lineTo(tickOut, 0);
+                    ctx.moveTo(-tickIn, 0); ctx.lineTo(-tickOut, 0);
+                    ctx.moveTo(0, tickIn); ctx.lineTo(0, tickOut);
+                    ctx.moveTo(0, -tickIn); ctx.lineTo(0, -tickOut);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // Inner glowing hexagon core
+                    ctx.scale(scale, scale);
+                    ctx.strokeStyle = p.color;
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+                    ctx.lineWidth = 2.2;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 14;
+
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const a = (i / 6) * Math.PI * 2;
+                        const px = Math.cos(a) * p.radius;
+                        const py = Math.sin(a) * p.radius;
+                        if (i === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.shadowBlur = 0;
+                    ctx.font = '800 9px "Orbitron", sans-serif';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(p.short || p.type[0], 0, 1);
+                    ctx.restore();
+                });
+
+                // 4. Draw Flying Saucer (UFO)
+                if (state.ufo) {
+                    const u = state.ufo;
+                    const r = u.radius;
+                    ctx.save();
+                    ctx.translate(u.x, u.y);
+                    ctx.strokeStyle = theme.ufo;
+                    ctx.lineWidth = 2.2;
+                    ctx.shadowColor = theme.ufo;
+                    ctx.shadowBlur = 12;
+
+                    // Classic Arcade Saucer Silhouette
+                    ctx.beginPath();
+                    ctx.moveTo(-r, 0);
+                    ctx.lineTo(r, 0);
+                    ctx.moveTo(-r * 0.65, -r * 0.35);
+                    ctx.lineTo(r * 0.65, -r * 0.35);
+                    ctx.lineTo(r, 0);
+                    ctx.lineTo(r * 0.55, r * 0.42);
+                    ctx.lineTo(-r * 0.55, r * 0.42);
+                    ctx.lineTo(-r, 0);
+                    ctx.closePath();
+                    ctx.stroke();
+
+                    // Upper cockpit dome
+                    ctx.beginPath();
+                    ctx.arc(0, -r * 0.35, r * 0.35, Math.PI, 0);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 5. Draw Player Starfighter
+                const ship = state.ship;
+                if (ship && !ship.dead) {
+                    // Blink during spawn invulnerability
+                    const visible = ship.invulnTimer <= 0 || Math.floor(ship.invulnTimer * 10) % 2 === 0;
+                    if (visible) {
+                        ctx.save();
+                        ctx.translate(ship.x, ship.y);
+                        ctx.rotate(ship.angle);
+
+                        // Thruster Flame Jet Vector
+                        const isThrusting = input.thrust || (input.joyActive && input.joyThrust);
+                        if (isThrusting && Math.random() < 0.85) {
+                            ctx.strokeStyle = theme.thrust;
+                            ctx.lineWidth = 2.2;
+                            ctx.shadowColor = theme.thrust;
+                            ctx.shadowBlur = 12;
+                            const flameLen = 18 + Math.random() * 10;
+                            ctx.beginPath();
+                            ctx.moveTo(-10, -5);
+                            ctx.lineTo(-flameLen, 0);
+                            ctx.lineTo(-10, 5);
+                            ctx.stroke();
+                        }
+
+                        // Starfighter Hull Vector Polygon
+                        ctx.strokeStyle = theme.ship;
+                        ctx.lineWidth = 2.4;
+                        ctx.lineJoin = 'round';
+                        ctx.shadowColor = theme.ship;
+                        ctx.shadowBlur = 12;
+                        ctx.fillStyle = 'rgba(6, 182, 212, 0.12)';
+
+                        ctx.beginPath();
+                        ctx.moveTo(18, 0);       // Nose tip
+                        ctx.lineTo(-13, -12);    // Left wingtip
+                        ctx.lineTo(-8, -4);      // Inner tail indent
+                        ctx.lineTo(-8, 4);
+                        ctx.lineTo(-13, 12);     // Right wingtip
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+
+                        // Energy Shield Bubble
+                        if (ship.shieldTimer > 0) {
+                            ctx.strokeStyle = theme.shield;
+                            ctx.lineWidth = 2;
+                            ctx.shadowColor = theme.shield;
+                            ctx.shadowBlur = 14;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, ship.radius + 8 + Math.sin(nowSec * 12) * 1.5, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
+                    }
+                }
+
+                // 6. Draw Ship Destruction Vector Debris Lines
+                state.debrisLines.forEach(d => {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, d.life / 1.5);
+                    ctx.translate(d.x, d.y);
+                    ctx.rotate(d.rot);
+                    ctx.strokeStyle = d.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(d.ln.x1, d.ln.y1);
+                    ctx.lineTo(d.ln.x2, d.ln.y2);
+                    ctx.stroke();
+                    ctx.restore();
+                });
+
+                // 7. Draw Player & UFO Bullets
+                ctx.save();
+                ctx.fillStyle = theme.bullet;
+                ctx.shadowColor = theme.bullet;
+                ctx.shadowBlur = 10;
+                state.bullets.forEach(b => {
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, 2.8, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                ctx.fillStyle = theme.ufoBullet;
+                ctx.shadowColor = theme.ufoBullet;
+                state.ufoBullets.forEach(ub => {
+                    ctx.beginPath();
+                    ctx.arc(ub.x, ub.y, 3.2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+
+                // 8. Draw Particle Sparks & Floating Score Popups
+                state.particles.forEach(pt => {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, pt.life / pt.maxLife);
+                    ctx.fillStyle = pt.color;
+                    ctx.shadowColor = pt.color;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+
+                state.floatingTexts.forEach(ft => {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, ft.alpha);
+                    ctx.font = '800 13px "Orbitron", sans-serif';
+                    ctx.fillStyle = ft.color;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(ft.text, ft.x, ft.y);
+                    ctx.restore();
+                });
+
+                ctx.restore();
+            }
+
+            // ============================================================================
+            // 8. HUD, SETTINGS & STATE MANAGEMENT
+            // ============================================================================
+            function loadHighScore() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY_HIGH);
+                    if (saved) state.highScore = parseInt(saved, 10) || 0;
+                } catch (e) {}
+                updateHUD();
+                menuHighScore.textContent = state.highScore.toLocaleString();
+            }
+
+            function saveHighScore() {
+                try {
+                    localStorage.setItem(STORAGE_KEY_HIGH, String(state.highScore));
+                } catch (e) {}
+            }
+
+            function updateHUD() {
+                hudScore.textContent = state.score.toLocaleString();
+                hudHigh.textContent = state.highScore.toLocaleString();
+                menuHighScore.textContent = state.highScore.toLocaleString();
+            }
+
+            function renderLivesIcons() {
+                const shipSvg = `
+                    <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 100 100" fill="none">
+                        <polygon points="50,10 85,88 50,70 15,88" stroke="#22d3ee" stroke-width="10" stroke-linejoin="round" />
+                    </svg>
+                `;
+                hudLivesDesktop.innerHTML = '';
+                hudLivesMobile.innerHTML = '';
+                for (let i = 0; i < state.lives; i++) {
+                    hudLivesDesktop.insertAdjacentHTML('beforeend', shipSvg);
+                    hudLivesMobile.insertAdjacentHTML('beforeend', shipSvg);
+                }
+            }
+
+            function syncSettingsUI() {
+                document.querySelectorAll('#setting-theme-group .option-pill').forEach(btn => {
+                    btn.classList.toggle('selected', btn.dataset.theme === config.theme);
+                });
+                document.querySelectorAll('#setting-diff-group .option-pill').forEach(btn => {
+                    btn.classList.toggle('selected', btn.dataset.diff === config.difficulty);
+                });
+                document.querySelectorAll('#setting-touch-group .option-pill').forEach(btn => {
+                    btn.classList.toggle('selected', btn.dataset.touch === config.touchStyle);
+                });
+
+                toggleMouseAim.className = `w-11 h-6 rounded-full relative transition-colors flex items-center p-0.5 shrink-0 ${config.mouseAim ? 'bg-cyan-500' : 'bg-slate-700'}`;
+                knobMouseAim.className = `w-5 h-5 rounded-full bg-white shadow transform transition-transform ${config.mouseAim ? 'translate-x-5' : 'translate-x-0'}`;
+
+                // Toggle Left Touch Controls between Buttons and Virtual Joystick
+                const isJoy = config.touchStyle === 'joystick';
+                touchLeftButtons.classList.toggle('hidden', isJoy);
+                touchLeftJoystick.classList.toggle('hidden', !isJoy);
+
+                const themeNames = { neon: 'Neon Cyber', classic: '1979 Classic', phosphor: 'Green CRT' };
+                menuSettingsPill.innerHTML = `
+                    <span>Theme: <strong class="text-cyan-400">${themeNames[config.theme]}</strong></span>
+                    <span class="text-slate-600">•</span>
+                    <span>Difficulty: <strong class="text-emerald-400">${DIFFICULTIES[config.difficulty].label}</strong></span>
+                    <span class="text-slate-600">•</span>
+                    <span>Touch: <strong class="text-amber-400">${isJoy ? 'Virtual Joystick' : 'Arcade Buttons'}</strong></span>
+                `;
+            }
+
+            function startNewGame() {
+                sfx.init();
+                state.prevHigh = state.highScore;
+                state.score = 0;
+                state.nextExtraLifeScore = 10000;
+                state.lives = 3;
+                state.wave = 1;
+                state.bullets = [];
+                state.ufoBullets = [];
+                state.particles = [];
+                state.debrisLines = [];
+                state.powerups = [];
+                state.floatingTexts = [];
+                state.ufo = null;
+                state.ufoSpawnTimer = DIFFICULTIES[config.difficulty].ufoRate;
+                state.ship = createShip();
+
+                hudPowerup.classList.add('hidden');
+                menuOverlay.classList.add('hidden');
+                settingsOverlay.classList.add('hidden');
+                pauseOverlay.classList.add('hidden');
+                gameoverOverlay.classList.add('hidden');
+                btnPause.classList.remove('hidden');
+                iconPause.className = 'fa-solid fa-pause text-xs sm:text-sm';
+
+                updateHUD();
+                renderLivesIcons();
+                spawnWaveAsteroids();
+                state.status = 'PLAYING';
+            }
+
+            function triggerGameOver() {
+                state.status = 'GAMEOVER';
+                btnPause.classList.add('hidden');
+                document.getElementById('final-score').textContent = state.score.toLocaleString();
+                document.getElementById('final-wave').textContent = state.wave;
+                document.getElementById('final-high').textContent = state.highScore.toLocaleString();
+                document.getElementById('gameover-record-badge').classList.toggle(
+                    'hidden',
+                    !(state.score > 0 && state.score > state.prevHigh)
+                );
+                gameoverOverlay.classList.remove('hidden');
+            }
+
+            function togglePause() {
+                if (state.status === 'PLAYING') {
+                    state.status = 'PAUSED';
+                    pauseOverlay.classList.remove('hidden');
+                    iconPause.className = 'fa-solid fa-play text-xs sm:text-sm';
+                } else if (state.status === 'PAUSED') {
+                    state.status = 'PLAYING';
+                    pauseOverlay.classList.add('hidden');
+                    iconPause.className = 'fa-solid fa-pause text-xs sm:text-sm';
+                }
+            }
+
+            function returnToMainMenu() {
+                state.status = 'MENU';
+                btnPause.classList.add('hidden');
+                pauseOverlay.classList.add('hidden');
+                gameoverOverlay.classList.add('hidden');
+                settingsOverlay.classList.add('hidden');
+                menuOverlay.classList.remove('hidden');
+            }
+
+            // ============================================================================
+            // 9. RESPONSIVE CANVAS SIZING & MAIN LOOP
+            // ============================================================================
+            function resizeCanvas() {
+                const rect = spaceFrame.getBoundingClientRect();
+                canvas.width = Math.max(300, Math.floor(rect.width));
+                canvas.height = Math.max(220, Math.floor(rect.height));
+                initStars();
+            }
+
+            let lastTime = performance.now();
+            function gameLoop(now) {
+                const dt = Math.min(0.04, (now - lastTime) / 1000);
+                lastTime = now;
+
+                if (state.status === 'PLAYING') {
+                    updateSimulation(dt);
+                } else if (state.status === 'MENU') {
+                    // Ambient drifting asteroids behind the main menu
+                    state.asteroids.forEach(a => {
+                        a.x += a.vx * dt;
+                        a.y += a.vy * dt;
+                        a.angle += a.rotSpeed * dt;
+                        wrapPosition(a, a.radius);
+                    });
+                }
+
+                renderSpace();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ============================================================================
+            // 10. EVENT LISTENERS: PC/LAPTOP KEYBOARD, MOUSE & MOBILE MULTI-TOUCH
+            // ============================================================================
+            window.addEventListener('keydown', (e) => {
+                const k = e.key;
+                if (k === 'p' || k === 'P' || k === 'Escape') {
+                    if (state.status === 'PLAYING' || state.status === 'PAUSED') {
+                        e.preventDefault();
+                        togglePause();
+                        return;
+                    }
+                }
+
+                if (state.status !== 'PLAYING') return;
+
+                input.mouseActive = false;
+                if (k === 'ArrowLeft' || k === 'a' || k === 'A') { e.preventDefault(); input.left = true; }
+                if (k === 'ArrowRight' || k === 'd' || k === 'D') { e.preventDefault(); input.right = true; }
+                if (k === 'ArrowUp' || k === 'w' || k === 'W') { e.preventDefault(); input.thrust = true; }
+                if (k === ' ' || k === 'z' || k === 'Z' || k === 'k' || k === 'K') { e.preventDefault(); input.fire = true; }
+                if (k === 'ArrowDown' || k === 's' || k === 'S' || k === 'Shift') { e.preventDefault(); input.hyper = true; }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const k = e.key;
+                if (k === 'ArrowLeft' || k === 'a' || k === 'A') input.left = false;
+                if (k === 'ArrowRight' || k === 'd' || k === 'D') input.right = false;
+                if (k === 'ArrowUp' || k === 'w' || k === 'W') input.thrust = false;
+                if (k === ' ' || k === 'z' || k === 'Z' || k === 'k' || k === 'K') input.fire = false;
+            });
+
+            // Optional Laptop Mouse / Trackpad Aim & Click
+            canvas.addEventListener('mousemove', (e) => {
+                if (!config.mouseAim || state.status !== 'PLAYING') return;
+                const rect = canvas.getBoundingClientRect();
+                input.mouseX = e.clientX - rect.left;
+                input.mouseY = e.clientY - rect.top;
+                input.mouseActive = true;
+            });
+
+            canvas.addEventListener('mousedown', (e) => {
+                if (!config.mouseAim || state.status !== 'PLAYING') return;
+                e.preventDefault();
+                sfx.init();
+                if (e.button === 0) input.fire = true;
+                else if (e.button === 2) input.thrust = true;
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!config.mouseAim) return;
+                if (e.button === 0) input.fire = false;
+                if (e.button === 2) input.thrust = false;
+            });
+
+            canvas.addEventListener('contextmenu', (e) => {
+                if (config.mouseAim) e.preventDefault();
+            });
+
+            // Mobile Multi-Touch Arcade Buttons
+            function bindTouchHold(btn, propName) {
+                const onPress = (e) => {
+                    e.preventDefault();
+                    sfx.init();
+                    input[propName] = true;
+                    btn.classList.add('active-touch');
+                };
+                const onRelease = (e) => {
+                    if (e) e.preventDefault();
+                    input[propName] = false;
+                    btn.classList.remove('active-touch');
+                };
+                btn.addEventListener('touchstart', onPress, { passive: false });
+                btn.addEventListener('touchend', onRelease, { passive: false });
+                btn.addEventListener('touchcancel', onRelease);
+                btn.addEventListener('mousedown', onPress);
+                btn.addEventListener('mouseup', onRelease);
+                btn.addEventListener('mouseleave', onRelease);
+            }
+
+            bindTouchHold(ctrlRotLeft, 'left');
+            bindTouchHold(ctrlRotRight, 'right');
+            bindTouchHold(ctrlThrust, 'thrust');
+            bindTouchHold(ctrlFire, 'fire');
+
+            ctrlHyperspace.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                sfx.init();
+                input.hyper = true;
+                ctrlHyperspace.classList.add('active-touch');
+                setTimeout(() => ctrlHyperspace.classList.remove('active-touch'), 150);
+            }, { passive: false });
+            ctrlHyperspace.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                sfx.init();
+                input.hyper = true;
+            });
+
+            // Virtual Joystick Touch Handler
+            function handleJoystickMove(clientX, clientY) {
+                const rect = joystickZone.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const dx = clientX - cx;
+                const dy = clientY - cy;
+                const dist = Math.hypot(dx, dy);
+                const maxRadius = rect.height * 0.48;
+
+                if (dist > 4) {
+                    input.joyActive = true;
+                    input.joyAngle = Math.atan2(dy, dx);
+                    input.joyThrust = dist > maxRadius * 0.45;
+                    const clampedDist = Math.min(dist, maxRadius);
+                    const nx = (dx / dist) * clampedDist;
+                    const ny = (dy / dist) * clampedDist;
+                    joystickNub.style.transform = `translate(${nx}px, ${ny}px)`;
+                } else {
+                    input.joyThrust = false;
+                    joystickNub.style.transform = 'translate(0px, 0px)';
+                }
+            }
+
+            joystickZone.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                sfx.init();
+                if (e.touches.length > 0) {
+                    handleJoystickMove(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+
+            joystickZone.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    handleJoystickMove(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+
+            const resetJoystick = () => {
+                input.joyActive = false;
+                input.joyThrust = false;
+                joystickNub.style.transform = 'translate(0px, 0px)';
+            };
+            joystickZone.addEventListener('touchend', resetJoystick);
+            joystickZone.addEventListener('touchcancel', resetJoystick);
+
+            // UI Modal Buttons
+            btnPlay.addEventListener('click', startNewGame);
+            btnPlayAgain.addEventListener('click', startNewGame);
+            btnPause.addEventListener('click', togglePause);
+            btnResume.addEventListener('click', togglePause);
+            btnPauseMenu.addEventListener('click', returnToMainMenu);
+            btnGameoverMenu.addEventListener('click', returnToMainMenu);
+
+            btnOpenSettings.addEventListener('click', () => {
+                syncSettingsUI();
+                settingsOverlay.classList.remove('hidden');
+            });
+
+            btnTopSettings.addEventListener('click', () => {
+                if (state.status === 'PLAYING') {
+                    state.status = 'PAUSED';
+                    pauseOverlay.classList.remove('hidden');
+                    iconPause.className = 'fa-solid fa-play text-xs sm:text-sm';
+                }
+                syncSettingsUI();
+                settingsOverlay.classList.remove('hidden');
+            });
+
+            btnCloseSettings.addEventListener('click', () => settingsOverlay.classList.add('hidden'));
+            btnSaveSettings.addEventListener('click', () => {
+                syncSettingsUI();
+                settingsOverlay.classList.add('hidden');
+            });
+
+            document.querySelectorAll('#setting-theme-group .option-pill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    config.theme = btn.dataset.theme;
+                    syncSettingsUI();
+                });
+            });
+
+            document.querySelectorAll('#setting-diff-group .option-pill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    config.difficulty = btn.dataset.diff;
+                    syncSettingsUI();
+                });
+            });
+
+            document.querySelectorAll('#setting-touch-group .option-pill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    config.touchStyle = btn.dataset.touch;
+                    syncSettingsUI();
+                });
+            });
+
+            toggleMouseAim.addEventListener('click', () => {
+                config.mouseAim = !config.mouseAim;
+                syncSettingsUI();
+            });
+
+            btnSound.addEventListener('click', () => {
+                sfx.muted = !sfx.muted;
+                iconSound.className = sfx.muted
+                    ? 'fa-solid fa-volume-xmark text-xs sm:text-sm text-slate-500'
+                    : 'fa-solid fa-volume-high text-xs sm:text-sm text-cyan-400';
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+
+            window.onload = function () {
+                resizeCanvas();
+                loadHighScore();
+                syncSettingsUI();
+                // Populate ambient background asteroids for the main menu
+                for (let i = 0; i < 6; i++) {
+                    state.asteroids.push(createAsteroid(Math.random() * canvas.width, Math.random() * canvas.height, 3));
+                }
+                requestAnimationFrame(gameLoop);
+            };
+        })();
+    </script>
+</body>
+</html>
