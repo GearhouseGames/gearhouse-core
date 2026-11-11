@@ -88,15 +88,42 @@
             z-index: 10;
         }
 
+        .search-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+        }
+
         .search-bar {
             background-color: var(--bg-base);
             border: 1px solid var(--bg-hover);
             border-radius: 8px;
-            padding: 8px 16px;
+            padding: 8px 34px 8px 16px;
             color: var(--text-main);
             width: 100%;
-            max-width: 400px;
             outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-bar:focus {
+            border-color: var(--accent-green);
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            display: none;
+        }
+
+        .clear-search:hover {
+            color: var(--text-main);
         }
 
         .content-wrapper {
@@ -143,6 +170,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+        }
+
+        .thumbnail-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .play-overlay {
@@ -210,11 +245,14 @@
 
     <main class="main-content">
         <header class="top-header">
-            <input type="text" class="search-bar" placeholder="Search for experiences...">
+            <div class="search-wrapper">
+                <input type="text" id="search-input" class="search-bar" placeholder="Search for experiences..." autocomplete="off">
+                <button id="clear-search" class="clear-search" title="Clear search">✕</button>
+            </div>
         </header>
 
         <div class="content-wrapper">
-            <div class="section-title">All Games</div>
+            <div class="section-title" id="section-title">All Games</div>
             
             <!-- This grid will be populated automatically by JavaScript -->
             <div class="game-grid" id="auto-game-grid">
@@ -224,53 +262,212 @@
     </main>
 
     <script>
+        let allGames = [];
+
+        // Calculates edit distance between two words to forgive typos (e.g., "solitare" -> "solitaire")
+        function levenshteinDistance(a, b) {
+            const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+            for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
+            for (let j = 0; j <= b.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= a.length; i++) {
+                for (let j = 1; j <= b.length; j++) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j] + 1,       // deletion
+                        matrix[i][j - 1] + 1,       // insertion
+                        matrix[i - 1][j - 1] + cost // substitution
+                    );
+                }
+            }
+            return matrix[a.length][b.length];
+        }
+
+        // Checks if all characters of the query appear in order inside the target (e.g. "frtcrsh" -> "fruit crush")
+        function isSubsequence(query, target) {
+            let qIdx = 0;
+            for (let tIdx = 0; tIdx < target.length && qIdx < query.length; tIdx++) {
+                if (query[qIdx] === target[tIdx]) qIdx++;
+            }
+            return qIdx === query.length;
+        }
+
+        // Scores how well a single search word matches a game's title words
+        function scoreTokenMatch(queryWord, titleWords, fullTitle) {
+            let bestScore = 0;
+
+            // 1. Direct substring match on the full title
+            if (fullTitle.includes(queryWord)) {
+                bestScore = Math.max(bestScore, fullTitle.startsWith(queryWord) ? 100 : 85);
+            }
+
+            for (const word of titleWords) {
+                // Exact word match
+                if (word === queryWord) {
+                    bestScore = Math.max(bestScore, 120);
+                }
+                // Starts with the search word
+                else if (word.startsWith(queryWord)) {
+                    bestScore = Math.max(bestScore, 95);
+                }
+                // Typo tolerance: compare against word or prefix of the word
+                else if (queryWord.length >= 2) {
+                    const maxAllowedEdits = queryWord.length <= 4 ? 1 : 2;
+                    
+                    // Compare against full word
+                    const distFull = levenshteinDistance(queryWord, word);
+                    if (distFull <= maxAllowedEdits) {
+                        bestScore = Math.max(bestScore, 75 - distFull * 15);
+                    }
+
+                    // Compare against word prefix (so typing "solitai" or "solitar" matches "solitaire")
+                    if (word.length > queryWord.length) {
+                        const prefix = word.slice(0, queryWord.length);
+                        const distPrefix = levenshteinDistance(queryWord, prefix);
+                        if (distPrefix <= 1) {
+                            bestScore = Math.max(bestScore, 65 - distPrefix * 15);
+                        }
+                    }
+                }
+
+                // Subsequence match (e.g., "pnbl" -> "pinball")
+                if (queryWord.length >= 3 && isSubsequence(queryWord, word)) {
+                    bestScore = Math.max(bestScore, 45);
+                }
+            }
+
+            return bestScore;
+        }
+
+        // Ranks and filters all games regardless of word order or exact spelling
+        function searchGames(rawQuery) {
+            const query = rawQuery.toLowerCase().trim();
+            if (!query) return allGames;
+
+            // Split the user's search into individual words, ignoring extra spaces
+            const queryTokens = query.split(/\s+/).filter(Boolean);
+
+            const scoredGames = allGames.map(game => {
+                const fullTitle = game.cleanName.toLowerCase();
+                const titleWords = fullTitle.split(/\s+/);
+
+                let totalScore = 0;
+                let matchedTokens = 0;
+
+                for (const token of queryTokens) {
+                    const tokenScore = scoreTokenMatch(token, titleWords, fullTitle);
+                    if (tokenScore > 0) {
+                        matchedTokens++;
+                        totalScore += tokenScore;
+                    }
+                }
+
+                // Require all typed words to match at least fuzzily (in any order)
+                if (matchedTokens < queryTokens.length) {
+                    return { game, score: 0 };
+                }
+
+                return { game, score: totalScore };
+            });
+
+            // Filter out non-matches and sort highest-scoring matches first
+            return scoredGames
+                .filter(item => item.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .map(item => item.game);
+        }
+
+        function renderGames(gamesToRender, isSearching = false) {
+            const grid = document.getElementById('auto-game-grid');
+            const sectionTitle = document.getElementById('section-title');
+            grid.innerHTML = '';
+
+            sectionTitle.textContent = isSearching
+                ? `Search Results (${gamesToRender.length})`
+                : 'All Games';
+
+            if (gamesToRender.length === 0) {
+                grid.innerHTML = '<p style="color: var(--text-muted);">No matching games found. Try another search term.</p>';
+                return;
+            }
+
+            gamesToRender.forEach(game => {
+                const card = document.createElement('a');
+                card.href = game.fileName;
+                card.className = 'game-card';
+
+                const thumbContent = game.imageFile
+                    ? `<img src="${game.imageFile}" alt="${game.cleanName}" class="thumbnail-img">`
+                    : '';
+
+                card.innerHTML = `
+                    <div class="thumbnail-container" style="background: linear-gradient(135deg, hsl(${game.hue}, 40%, 30%) 0%, hsl(${game.hue}, 60%, 15%) 100%);">
+                        ${thumbContent}
+                        <div class="play-overlay">
+                            <div class="play-btn">▶</div>
+                        </div>
+                    </div>
+                    <div class="game-info">
+                        <div class="game-title"></div>
+                        <div class="game-stats">
+                            <div class="stat">▶️ <span>Play</span></div>
+                        </div>
+                    </div>
+                `;
+
+                card.querySelector('.game-title').textContent = game.cleanName;
+                grid.appendChild(card);
+            });
+        }
+
         async function loadGamesFromGitHub() {
             const grid = document.getElementById('auto-game-grid');
             
             try {
-                // Fetches the file list directly from your public GitHub repository
                 const response = await fetch('https://api.github.com/repos/GearhouseGames/gearhouse-core/contents/');
                 const files = await response.json();
                 
-                grid.innerHTML = ''; // Clear the "Loading library..." text
-                
+                // Collect any uploaded image files so games automatically get pictures if a matching image exists
+                const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'];
+                const imageMap = {};
+
                 files.forEach(file => {
-                    // Only look for HTML files, and ignore index.html (the menu itself)
-                    if (file.name.endsWith('.html') && file.name !== 'index.html' && !file.name.toLowerCase().startsWith('google')) {
-                        
-                        // Clean up the file name for the title (e.g., "my-game.html" -> "My Game")
-                        let cleanName = file.name.replace('.html', '');
-                        cleanName = cleanName.replace(/-/g, ' ').replace(/_/g, ' ');
-                        cleanName = cleanName.replace(/\b\w/g, char => char.toUpperCase());
-
-                        // Generate a random gradient color based on the file name for aesthetic variety
-                        const colorCode = Array.from(cleanName).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                        const hue = colorCode % 360;
-
-                        // Create the HTML for the game card
-                        const cardHtml = `
-                            <a href="${file.name}" class="game-card">
-                                <div class="thumbnail-container" style="background: linear-gradient(135deg, hsl(${hue}, 40%, 30%) 0%, hsl(${hue}, 60%, 15%) 100%);">
-                                    <div class="play-overlay">
-                                        <div class="play-btn">▶</div>
-                                    </div>
-                                </div>
-                                <div class="game-info">
-                                    <div class="game-title">${cleanName}</div>
-                                    <div class="game-stats">
-                                        <div class="stat">▶️ <span>Play</span></div>
-                                    </div>
-                                </div>
-                            </a>
-                        `;
-                        
-                        grid.innerHTML += cardHtml;
+                    const lowerName = file.name.toLowerCase();
+                    const matchedExt = imageExtensions.find(ext => lowerName.endsWith(ext));
+                    if (matchedExt) {
+                        const baseName = lowerName.slice(0, -matchedExt.length);
+                        imageMap[baseName] = file.name;
                     }
                 });
 
-                if (grid.innerHTML === '') {
+                allGames = [];
+
+                files.forEach(file => {
+                    if (file.name.endsWith('.html') && file.name !== 'index.html' && !file.name.toLowerCase().startsWith('google')) {
+                        const rawBase = file.name.replace('.html', '');
+                        let cleanName = rawBase.replace(/-/g, ' ').replace(/_/g, ' ');
+                        cleanName = cleanName.replace(/\b\w/g, char => char.toUpperCase());
+
+                        const colorCode = Array.from(cleanName).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                        const hue = colorCode % 360;
+
+                        const matchingImage = imageMap[rawBase.toLowerCase()] || null;
+
+                        allGames.push({
+                            fileName: file.name,
+                            cleanName: cleanName,
+                            hue: hue,
+                            imageFile: matchingImage
+                        });
+                    }
+                });
+
+                if (allGames.length === 0) {
                     grid.innerHTML = '<p style="color: var(--text-muted);">No games found. Upload an HTML file to your repository.</p>';
+                    return;
                 }
+
+                renderGames(allGames, false);
 
             } catch (error) {
                 console.error("Error loading games:", error);
@@ -278,8 +475,26 @@
             }
         }
 
-        // Run the script as soon as the page loads
-        document.addEventListener('DOMContentLoaded', loadGamesFromGitHub);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGamesFromGitHub();
+
+            const searchInput = document.getElementById('search-input');
+            const clearBtn = document.getElementById('clear-search');
+
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value;
+                clearBtn.style.display = query.length > 0 ? 'block' : 'none';
+                const results = searchGames(query);
+                renderGames(results, query.trim().length > 0);
+            });
+
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+                renderGames(allGames, false);
+                searchInput.focus();
+            });
+        });
     </script>
 
 </body>
