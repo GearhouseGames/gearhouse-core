@@ -1,0 +1,2135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Royal Billiards & Pool Suite — 8-Ball, 9-Ball & Straight Pool</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Cinzel:wght@700;800&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-lounge: #070a12;
+            --gold: #f59e0b;
+            --emerald: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-lounge);
+            background-image:
+                radial-gradient(circle at 50% 15%, rgba(16, 185, 129, 0.12) 0%, transparent 55%),
+                radial-gradient(circle at 85% 85%, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .font-arcade {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+
+        .font-royal {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Arcade & Lounge Buttons */
+        .btn-lounge {
+            position: relative;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-lounge:active {
+            transform: translateY(2px) scale(0.97);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 20px -2px rgba(245, 158, 11, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+            color: #090d16;
+        }
+        .btn-gold:hover {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            box-shadow: 0 6px 25px -2px rgba(245, 158, 11, 0.75);
+        }
+
+        .btn-slate {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+        }
+        .btn-slate:hover {
+            border-color: #64748b;
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+        }
+
+        /* Option Selector Pills */
+        .option-pill {
+            transition: all 0.18s ease;
+            border: 2px solid #1e293b;
+            background: rgba(15, 23, 42, 0.8);
+        }
+        .option-pill:hover {
+            border-color: #334155;
+        }
+        .option-pill.selected {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.16);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+            color: #ffffff;
+        }
+
+        /* Pool Table Outer Shadow */
+        #table-wrapper {
+            box-shadow:
+                0 20px 55px rgba(0, 0, 0, 0.92),
+                0 0 30px rgba(16, 185, 129, 0.15);
+            border-radius: 1.25rem;
+        }
+
+        /* Active Player Card Glow */
+        .player-card {
+            transition: all 0.25s ease;
+            border: 1.5px solid #1e293b;
+            background: rgba(15, 23, 42, 0.75);
+        }
+        .player-card.active-turn {
+            border-color: #f59e0b;
+            background: rgba(30, 41, 59, 0.92);
+            box-shadow: 0 0 18px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Power Pull-Back Track */
+        #power-track {
+            background: linear-gradient(to bottom, #10b981 0%, #f59e0b 55%, #ef4444 100%);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.75);
+        }
+
+        /* Mini Ball Badge */
+        .mini-ball {
+            width: 20px;
+            height: 20px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 800;
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.45), 0 1px 3px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="text-slate-100 h-screen w-screen flex flex-col items-center justify-between p-1.5 sm:p-3 select-none overflow-hidden">
+
+    <!-- ================= TOP HUD: PLAYERS, TURN STATUS & RACK TARGETS ================= -->
+    <header class="w-full max-w-6xl bg-slate-900/90 backdrop-blur-md border border-slate-800/90 rounded-2xl px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-xl z-20 shrink-0">
+        <div class="flex items-center justify-between gap-2">
+            
+            <!-- Left: Player 1 Status Card -->
+            <div id="p1-card" class="player-card active-turn rounded-xl px-2.5 sm:px-3.5 py-1.5 flex items-center space-x-2.5 min-w-[130px] sm:min-w-[210px]">
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400 shrink-0">
+                    <i class="fa-solid fa-user text-xs sm:text-sm"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <span id="p1-name" class="font-arcade font-bold text-xs sm:text-sm text-white truncate">PLAYER 1</span>
+                        <span id="p1-group-badge" class="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">OPEN</span>
+                    </div>
+                    <div id="p1-Rack" class="flex items-center space-x-1 mt-1 overflow-x-auto min-h-[20px]">
+                        <span class="text-[10px] text-slate-400">Table Open</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Game Rule Banner & Live Callout -->
+            <div class="flex flex-col items-center justify-center text-center px-1 max-w-xs sm:max-w-md">
+                <div class="flex items-center space-x-1.5 mb-0.5">
+                    <span id="hud-game-type" class="font-arcade font-bold text-[11px] sm:text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50">8-BALL POOL</span>
+                    <span id="hud-lowest-ball" class="hidden text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">Target: #1</span>
+                </div>
+                <p id="hud-status-msg" class="text-[11px] sm:text-xs font-semibold text-amber-300 truncate max-w-[180px] sm:max-w-xs">
+                    Break Shot! Place cue ball in kitchen & shoot
+                </p>
+            </div>
+
+            <!-- Right: Player 2 / AI Status Card & Quick Buttons -->
+            <div class="flex items-center space-x-2">
+                <div id="p2-card" class="player-card rounded-xl px-2.5 sm:px-3.5 py-1.5 flex items-center space-x-2.5 min-w-[130px] sm:min-w-[210px]">
+                    <div class="flex-1 min-w-0 text-right">
+                        <div class="flex items-center justify-between">
+                            <span id="p2-group-badge" class="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">OPEN</span>
+                            <span id="p2-name" class="font-arcade font-bold text-xs sm:text-sm text-white truncate">CPU (PRO)</span>
+                        </div>
+                        <div id="p2-Rack" class="flex items-center justify-end space-x-1 mt-1 overflow-x-auto min-h-[20px]">
+                            <span class="text-[10px] text-slate-400">Table Open</span>
+                        </div>
+                    </div>
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-sky-500/20 border border-sky-400/50 flex items-center justify-center text-sky-400 shrink-0">
+                        <i id="p2-icon" class="fa-solid fa-robot text-xs sm:text-sm"></i>
+                    </div>
+                </div>
+
+                <!-- Sound, Rules & Menu Buttons -->
+                <div class="flex flex-col sm:flex-row items-center gap-1">
+                    <button id="btn-sound" title="Toggle Sound" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center border border-slate-700 transition">
+                        <i id="icon-sound" class="fa-solid fa-volume-high text-xs"></i>
+                    </button>
+                    <button id="btn-open-menu" title="Game Menu & Settings" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 transition">
+                        <i class="fa-solid fa-bars text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- ================= MAIN TABLE WORKSPACE ================= -->
+    <main id="workspace" class="relative flex-1 w-full max-w-6xl flex items-center justify-center my-1 overflow-hidden min-h-0 px-1">
+        
+        <div id="table-wrapper" class="relative flex items-center justify-center overflow-hidden">
+            <canvas id="pool-canvas" class="block cursor-crosshair"></canvas>
+
+            <!-- Foul / Notification Toast Banner -->
+            <div id="table-toast" class="absolute top-5 left-1/2 -translate-x-1/2 pointer-events-none z-20 hidden transition-opacity duration-200">
+                <div class="bg-slate-950/92 border-2 border-amber-400/80 px-5 py-2 rounded-xl shadow-2xl text-center">
+                    <p id="table-toast-title" class="font-arcade font-bold text-sm sm:text-base text-amber-400 tracking-wider uppercase">BALL IN HAND!</p>
+                    <p id="table-toast-sub" class="text-[11px] text-slate-300">Drag or tap anywhere on the felt to place cue ball</p>
+                </div>
+            </div>
+
+            <!-- 1. MAIN MENU & GAME SETUP MODAL -->
+            <div id="menu-overlay" class="absolute inset-0 bg-slate-950/92 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 text-center z-30 overflow-y-auto">
+                <div class="w-full max-w-lg my-auto">
+                    <!-- Emblem -->
+                    <div class="flex items-center justify-center space-x-2 mb-2">
+                        <div class="w-10 h-10 rounded-full bg-amber-400 text-slate-950 font-black flex items-center justify-center text-sm shadow-lg border-2 border-white">1</div>
+                        <div class="w-12 h-12 rounded-full bg-slate-950 text-white font-black flex items-center justify-center text-lg shadow-xl border-2 border-amber-400">8</div>
+                        <div class="w-10 h-10 rounded-full bg-rose-600 text-white font-black flex items-center justify-center text-sm shadow-lg border-2 border-white">9</div>
+                    </div>
+
+                    <h2 class="font-royal font-extrabold text-2xl sm:text-4xl tracking-wider text-white mb-1">
+                        ROYAL <span class="text-amber-400">BILLIARDS</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4">
+                        Precision 2D Pool Physics with English Spin, Ghost-Ball Laser Sights, and 3 Classic Rulesets.
+                    </p>
+
+                    <!-- Step 1: Select Pool Game Ruleset -->
+                    <div class="mb-3.5 text-left">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            <i class="fa-solid fa-trophy text-amber-400 mr-1"></i> 1. Choose Pool Game Ruleset
+                        </label>
+                        <div class="grid grid-cols-3 gap-2" id="ruleset-group">
+                            <button type="button" data-rule="8ball" class="option-pill selected rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white">8-BALL POOL</span>
+                                <span class="text-[10px] text-slate-400">Solids vs Stripes</span>
+                            </button>
+                            <button type="button" data-rule="9ball" class="option-pill rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white">9-BALL POOL</span>
+                                <span class="text-[10px] text-slate-400">Lowest Ball First</span>
+                            </button>
+                            <button type="button" data-rule="straight" class="option-pill rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white">14.1 STRAIGHT</span>
+                                <span class="text-[10px] text-slate-400">Any Ball Points</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Select Player Mode -->
+                    <div class="mb-3.5 text-left">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            <i class="fa-solid fa-users text-emerald-400 mr-1"></i> 2. Choose Match Mode
+                        </label>
+                        <div class="grid grid-cols-3 gap-2" id="mode-group">
+                            <button type="button" data-mode="1p_ai" class="option-pill selected rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white">1P vs AI</span>
+                                <span class="text-[10px] text-slate-400">vs Smart CPU</span>
+                            </button>
+                            <button type="button" data-mode="2p_local" class="option-pill rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white">2P PASS & PLAY</span>
+                                <span class="text-[10px] text-slate-400">Local Multiplayer</span>
+                            </button>
+                            <button type="button" data-mode="solo" class="option-pill rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white">SOLO CLEAR</span>
+                                <span class="text-[10px] text-slate-400">Practice / Speed</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: AI Difficulty & Table Felt Color -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5 text-left">
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                                <i class="fa-solid fa-robot text-sky-400 mr-1"></i> AI Skill Level
+                            </label>
+                            <div class="grid grid-cols-3 gap-1.5" id="ai-group">
+                                <button type="button" data-ai="easy" class="option-pill rounded-lg py-2 text-center font-arcade font-bold text-xs">ROOKIE</button>
+                                <button type="button" data-ai="medium" class="option-pill selected rounded-lg py-2 text-center font-arcade font-bold text-xs">CLUB</button>
+                                <button type="button" data-ai="hard" class="option-pill rounded-lg py-2 text-center font-arcade font-bold text-xs text-amber-400">SHARK</button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                                <i class="fa-solid fa-palette text-rose-400 mr-1"></i> Table Felt Theme
+                            </label>
+                            <div class="grid grid-cols-4 gap-1.5" id="felt-group">
+                                <button type="button" data-felt="emerald" class="option-pill selected rounded-lg py-2 text-center font-arcade font-bold text-[11px] text-emerald-400">GREEN</button>
+                                <button type="button" data-felt="blue" class="option-pill rounded-lg py-2 text-center font-arcade font-bold text-[11px] text-sky-400">BLUE</button>
+                                <button type="button" data-felt="burgundy" class="option-pill rounded-lg py-2 text-center font-arcade font-bold text-[11px] text-rose-400">RED</button>
+                                <button type="button" data-felt="cyber" class="option-pill rounded-lg py-2 text-center font-arcade font-bold text-[11px] text-purple-400">NEON</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Start Match & Resume Buttons -->
+                    <div class="flex gap-3">
+                        <button id="btn-start-match" class="btn-lounge btn-gold flex-1 font-arcade font-bold text-base sm:text-lg py-3 px-6 rounded-xl flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-play text-sm"></i>
+                            <span>RACK 'EM & BREAK!</span>
+                        </button>
+                        <button id="btn-resume-match" class="hidden btn-lounge btn-slate text-white font-arcade font-bold text-sm sm:text-base py-3 px-5 rounded-xl flex items-center justify-center space-x-2">
+                            <span>RESUME</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. VICTORY / MATCH OVER OVERLAY -->
+            <div id="gameover-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-30 hidden">
+                <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400 mb-3 shadow-xl">
+                    <i class="fa-solid fa-crown text-3xl"></i>
+                </div>
+                <h3 id="win-title" class="font-royal font-extrabold text-2xl sm:text-4xl text-white tracking-wider mb-1">PLAYER 1 WINS!</h3>
+                <p id="win-reason" class="text-xs sm:text-sm text-emerald-400 font-semibold uppercase tracking-widest mb-5">Legally pocketed the 8-Ball!</p>
+
+                <div class="grid grid-cols-2 gap-3 w-full max-w-xs bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 mb-6">
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-400 font-bold">Total Turns</p>
+                        <p id="win-turns" class="font-arcade font-bold text-2xl text-white">12</p>
+                    </div>
+                    <div class="border-l border-slate-800">
+                        <p class="text-[10px] uppercase text-amber-400 font-bold">Balls Pocketed</p>
+                        <p id="win-pocketed" class="font-arcade font-bold text-2xl text-amber-400">15</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 w-full max-w-xs">
+                    <button id="btn-play-again" class="btn-lounge btn-gold font-arcade font-bold text-sm sm:text-base py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                        <span>NEW RACK</span>
+                    </button>
+                    <button id="btn-win-menu" class="btn-lounge btn-slate text-white font-arcade font-bold text-sm sm:text-base py-3 px-4 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-sliders text-xs"></i>
+                        <span>CHANGE MODE</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ================= BOTTOM TACTILE CONTROLS: FINE AIM, SPIN (ENGLISH) & POWER SLIDER ================= -->
+    <footer class="w-full max-w-6xl bg-slate-900/90 backdrop-blur-md border border-slate-800/90 rounded-2xl px-3 sm:px-5 py-2 shadow-xl z-20 shrink-0">
+        <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+            
+            <!-- 1. Left: Fine-Aim Micro Adjusters & Pocketed Tray Preview -->
+            <div class="flex items-center space-x-1.5 sm:space-x-2">
+                <button id="btn-aim-left" type="button" title="Fine Aim Counter-Clockwise (A / Left Arrow)" class="btn-lounge btn-slate px-2.5 sm:px-3 py-2 rounded-xl text-slate-200 hover:text-amber-400 flex items-center space-x-1 text-xs font-semibold">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span class="hidden md:inline">Fine Aim</span>
+                </button>
+                <button id="btn-aim-right" type="button" title="Fine Aim Clockwise (D / Right Arrow)" class="btn-lounge btn-slate px-2.5 sm:px-3 py-2 rounded-xl text-slate-200 hover:text-amber-400 flex items-center space-x-1 text-xs font-semibold">
+                    <span class="hidden md:inline">Fine Aim</span>
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+
+                <!-- Cue Ball Spin (English) Interactive Selector -->
+                <div class="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 rounded-xl px-2.5 py-1">
+                    <div id="spin-pad" title="Click or drag to set Cue Ball Spin (Top Follow / Bottom Draw / Side English)" class="relative w-9 h-9 rounded-full bg-gradient-to-br from-white via-slate-100 to-slate-300 border-2 border-slate-600 shadow-inner cursor-pointer flex items-center justify-center shrink-0">
+                        <!-- Crosshair lines -->
+                        <div class="absolute w-full h-[1px] bg-slate-400/50 pointer-events-none"></div>
+                        <div class="absolute h-full w-[1px] bg-slate-400/50 pointer-events-none"></div>
+                        <!-- Red Contact Dot -->
+                        <div id="spin-dot" class="w-2.5 h-2.5 rounded-full bg-red-600 shadow pointer-events-none transform translate-x-0 translate-y-0"></div>
+                    </div>
+                    <div class="hidden sm:block text-left leading-tight">
+                        <p class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Cue Spin</p>
+                        <button id="btn-reset-spin" type="button" class="text-[10px] text-amber-400 hover:underline font-semibold">Center</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Center/Right: Dedicated Pull-Back Power Slider & Shoot Button (Ideal for Mobile & Laptop Trackpads) -->
+            <div class="flex-1 flex items-center justify-end space-x-2.5 max-w-md ml-auto">
+                <div class="flex-1 flex flex-col">
+                    <div class="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                        <span><i class="fa-solid fa-bolt text-amber-400 mr-1"></i>Cue Power (Pull & Release or Hold Space)</span>
+                        <span id="power-pct-label" class="text-amber-400 font-mono">0%</span>
+                    </div>
+                    <div class="relative w-full h-6 bg-slate-950 rounded-xl border border-slate-700 p-0.5 flex items-center overflow-hidden">
+                        <div id="power-fill-bar" class="h-full rounded-lg bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500 transition-none" style="width: 0%;"></div>
+                        <input id="power-slider" type="range" min="0" max="100" value="0" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    </div>
+                </div>
+
+                <button id="btn-quick-shoot" type="button" class="btn-lounge btn-gold font-arcade font-bold text-xs sm:text-sm px-3.5 sm:px-5 py-2.5 rounded-xl shrink-0 flex items-center space-x-1.5 shadow-lg">
+                    <i class="fa-solid fa-crosshairs"></i>
+                    <span>SHOOT</span>
+                </button>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- ================= BILLIARDS ENGINE & PROCEDURAL AUDIO SCRIPT ================= -->
+    <script>
+        (function () {
+            "use strict";
+
+            // ============================================================================
+            // 1. PROCEDURAL WEB AUDIO SYNTHESIZER (Cue Tip Hit, Ball Clack, Cushion, Pocket)
+            // ============================================================================
+            class BilliardsAudio {
+                constructor() {
+                    this.ctx = null;
+                    this.muted = false;
+                }
+
+                init() {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                }
+
+                // Crisp leather cue tip striking phenolic cue ball
+                cueStrike(powerRatio = 0.6) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(190 + powerRatio * 140, now);
+                        osc.frequency.exponentialRampToValueAtTime(55, now + 0.065);
+
+                        const vol = Math.min(0.35, 0.08 + powerRatio * 0.25);
+                        gain.gain.setValueAtTime(vol, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.07);
+                    } catch (e) {}
+                }
+
+                // Phenolic resin ball-to-ball clack scaled by collision impulse
+                ballClack(impactSpeed) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const norm = Math.min(1, impactSpeed / 950);
+                        if (norm < 0.02) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        const baseFreq = 1150 + Math.random() * 220;
+                        osc.frequency.setValueAtTime(baseFreq, now);
+                        osc.frequency.exponentialRampToValueAtTime(380, now + 0.038);
+
+                        gain.gain.setValueAtTime(norm * 0.26, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.04);
+                    } catch (e) {}
+                }
+
+                // Rubber rail cushion thud
+                railBounce(impactSpeed) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const norm = Math.min(1, impactSpeed / 800);
+                        if (norm < 0.04) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(135, now);
+                        osc.frequency.exponentialRampToValueAtTime(48, now + 0.065);
+
+                        gain.gain.setValueAtTime(norm * 0.18, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.07);
+                    } catch (e) {}
+                }
+
+                // Ball dropping into leather pocket basket
+                pocketDrop() {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(280, now);
+                        osc.frequency.exponentialRampToValueAtTime(95, now + 0.14);
+
+                        gain.gain.setValueAtTime(0.2, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.15);
+                    } catch (e) {}
+                }
+
+                foulBuzz() {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(155, now);
+                        osc.frequency.linearRampToValueAtTime(115, now + 0.22);
+
+                        gain.gain.setValueAtTime(0.12, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.24);
+                    } catch (e) {}
+                }
+
+                victoryFanfare() {
+                    if (this.muted) return;
+                    this.init();
+                    if (!this.ctx) return;
+                    const notes = [523.25, 659.25, 783.99, 1046.5];
+                    notes.forEach((f, idx) => {
+                        setTimeout(() => {
+                            if (this.muted || !this.ctx) return;
+                            const now = this.ctx.currentTime;
+                            const osc = this.ctx.createOscillator();
+                            const gain = this.ctx.createGain();
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(f, now);
+                            gain.gain.setValueAtTime(0.16, now);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                            osc.connect(gain);
+                            gain.connect(this.ctx.destination);
+                            osc.start(now);
+                            osc.stop(now + 0.25);
+                        }, idx * 100);
+                    });
+                }
+            }
+
+            const sfx = new BilliardsAudio();
+
+            // ============================================================================
+            // 2. LOGICAL TABLE DIMENSIONS, BALL COLORS & FELT THEMES
+            // ============================================================================
+            // Regulation 2:1 playfield aspect ratio inside a rich wooden rail frame
+            const LOGICAL_W = 1120;
+            const LOGICAL_H = 600;
+            const RAIL_SIZE = 52;
+            const PLAY_LEFT = RAIL_SIZE;
+            const PLAY_RIGHT = LOGICAL_W - RAIL_SIZE;
+            const PLAY_TOP = RAIL_SIZE;
+            const PLAY_BOTTOM = LOGICAL_H - RAIL_SIZE;
+            const PLAY_W = PLAY_RIGHT - PLAY_LEFT;   // 1016
+            const PLAY_H = PLAY_BOTTOM - PLAY_TOP;   // 496
+
+            const HEAD_STRING_X = PLAY_LEFT + PLAY_W * 0.25;
+            const FOOT_SPOT_X = PLAY_LEFT + PLAY_W * 0.74;
+            const FOOT_SPOT_Y = PLAY_TOP + PLAY_H * 0.5;
+
+            const BALL_R = 14.5;
+            const POCKET_R = 26;
+            const MAX_SHOT_SPEED = 1480; // Original natural shot velocity
+            const SUBSTEPS = 12;         // Smooth sub-stepping for accurate collisions
+
+            const POCKETS = [
+                { x: PLAY_LEFT + 2,             y: PLAY_TOP + 2,              name: 'Top-Left' },
+                { x: PLAY_LEFT + PLAY_W / 2,    y: PLAY_TOP - 4,              name: 'Top-Side' },
+                { x: PLAY_RIGHT - 2,            y: PLAY_TOP + 2,              name: 'Top-Right' },
+                { x: PLAY_LEFT + 2,             y: PLAY_BOTTOM - 2,           name: 'Bottom-Left' },
+                { x: PLAY_LEFT + PLAY_W / 2,    y: PLAY_BOTTOM + 4,           name: 'Bottom-Side' },
+                { x: PLAY_RIGHT - 2,            y: PLAY_BOTTOM - 2,           name: 'Bottom-Right' }
+            ];
+
+            // Standard Pool Ball Palette (1-7 Solids, 8 Black, 9-15 Stripes)
+            const BALL_META = {
+                0:  { color: '#f8fafc', stripe: false, label: '' },
+                1:  { color: '#eab308', stripe: false, label: '1' },
+                2:  { color: '#2563eb', stripe: false, label: '2' },
+                3:  { color: '#dc2626', stripe: false, label: '3' },
+                4:  { color: '#7c3aed', stripe: false, label: '4' },
+                5:  { color: '#ea580c', stripe: false, label: '5' },
+                6:  { color: '#16a34a', stripe: false, label: '6' },
+                7:  { color: '#881337', stripe: false, label: '7' },
+                8:  { color: '#0f172a', stripe: false, label: '8' },
+                9:  { color: '#eab308', stripe: true,  label: '9' },
+                10: { color: '#2563eb', stripe: true,  label: '10' },
+                11: { color: '#dc2626', stripe: true,  label: '11' },
+                12: { color: '#7c3aed', stripe: true,  label: '12' },
+                13: { color: '#ea580c', stripe: true,  label: '13' },
+                14: { color: '#16a34a', stripe: true,  label: '14' },
+                15: { color: '#881337', stripe: true,  label: '15' }
+            };
+
+            const FELT_THEMES = {
+                emerald:  { inner: '#0f764a', outer: '#064e31', cushion: '#053b25', wood: '#3e1f0d', woodBorder: '#261105' },
+                blue:     { inner: '#1d6fa5', outer: '#10446b', cushion: '#0b314f', wood: '#2c1810', woodBorder: '#1a0d08' },
+                burgundy: { inner: '#881c2e', outer: '#540e1a', cushion: '#3d0811', wood: '#2e160b', woodBorder: '#180a04' },
+                cyber:    { inner: '#0f172a', outer: '#060a14', cushion: '#1e1b4b', wood: '#0f172a', woodBorder: '#38bdf8' }
+            };
+
+            // ============================================================================
+            // 3. GAME CONFIGURATION & MATCH STATE
+            // ============================================================================
+            let config = {
+                ruleset: '8ball',       // '8ball' | '9ball' | 'straight'
+                mode: '1p_ai',          // '1p_ai' | '2p_local' | 'solo'
+                aiDifficulty: 'medium', // 'easy' | 'medium' | 'hard'
+                felt: 'emerald'
+            };
+
+            let match = {
+                state: 'MENU',          // 'MENU' | 'AIMING' | 'MOVING' | 'AI_THINKING' | 'GAMEOVER'
+                turn: 1,                // 1 or 2
+                totalTurns: 1,
+                isBreakShot: true,
+                ballInHand: true,
+                headStringOnly: true,   // True on initial break shot
+                tableOpen: true,        // For 8-ball before groups are assigned
+                p1Group: null,          // 'solids' | 'stripes' | 'points'
+                p2Group: null,
+                p1Score: 0,
+                p2Score: 0,
+                aimAngle: 0,            // Direction cue ball will travel
+                pullPower: 0,           // 0..1
+                isDraggingCue: false,
+                dragStartDist: 0,
+                spinX: 0,               // -1..1 Side English
+                spinY: 0,               // -1..1 Top Follow (+1) / Bottom Draw (-1)
+                balls: [],
+                pocketedThisTurn: [],
+                firstHitBallId: null,
+                railHitsThisTurn: 0,
+                pocketAnimations: [],
+                aiTimer: 0
+            };
+
+            // ============================================================================
+            // 4. DOM ELEMENTS
+            // ============================================================================
+            const canvas = document.getElementById('pool-canvas');
+            const ctx = canvas.getContext('2d');
+            const workspace = document.getElementById('workspace');
+            const tableWrapper = document.getElementById('table-wrapper');
+
+            const p1Card = document.getElementById('p1-card');
+            const p2Card = document.getElementById('p2-card');
+            const p1NameEl = document.getElementById('p1-name');
+            const p2NameEl = document.getElementById('p2-name');
+            const p1GroupBadge = document.getElementById('p1-group-badge');
+            const p2GroupBadge = document.getElementById('p2-group-badge');
+            const p1RackEl = document.getElementById('p1-Rack');
+            const p2RackEl = document.getElementById('p2-Rack');
+            const p2Icon = document.getElementById('p2-icon');
+
+            const hudGameType = document.getElementById('hud-game-type');
+            const hudLowestBall = document.getElementById('hud-lowest-ball');
+            const hudStatusMsg = document.getElementById('hud-status-msg');
+            const tableToast = document.getElementById('table-toast');
+            const tableToastTitle = document.getElementById('table-toast-title');
+            const tableToastSub = document.getElementById('table-toast-sub');
+
+            const menuOverlay = document.getElementById('menu-overlay');
+            const gameoverOverlay = document.getElementById('gameover-overlay');
+            const btnStartMatch = document.getElementById('btn-start-match');
+            const btnResumeMatch = document.getElementById('btn-resume-match');
+            const btnOpenMenu = document.getElementById('btn-open-menu');
+            const btnPlayAgain = document.getElementById('btn-play-again');
+            const btnWinMenu = document.getElementById('btn-win-menu');
+            const btnSound = document.getElementById('btn-sound');
+            const iconSound = document.getElementById('icon-sound');
+
+            const btnAimLeft = document.getElementById('btn-aim-left');
+            const btnAimRight = document.getElementById('btn-aim-right');
+            const spinPad = document.getElementById('spin-pad');
+            const spinDot = document.getElementById('spin-dot');
+            const btnResetSpin = document.getElementById('btn-reset-spin');
+            const powerSlider = document.getElementById('power-slider');
+            const powerFillBar = document.getElementById('power-fill-bar');
+            const powerPctLabel = document.getElementById('power-pct-label');
+            const btnQuickShoot = document.getElementById('btn-quick-shoot');
+
+            // ============================================================================
+            // 5. RACK SETUP FOR 8-BALL, 9-BALL & 14.1 STRAIGHT POOL
+            // ============================================================================
+            function createBall(id, x, y) {
+                return {
+                    id,
+                    x,
+                    y,
+                    vx: 0,
+                    vy: 0,
+                    spinX: 0,
+                    spinY: 0,
+                    pocketed: false,
+                    rollPhase: Math.random() * Math.PI * 2
+                };
+            }
+
+            function setupRack() {
+                match.balls = [];
+                match.pocketAnimations = [];
+
+                // Cue Ball (id = 0) placed behind head string
+                match.balls.push(createBall(0, HEAD_STRING_X, FOOT_SPOT_Y));
+
+                const spacingX = BALL_R * Math.sqrt(3) + 0.6;
+                const spacingY = BALL_R * 2 + 0.6;
+
+                if (config.ruleset === '9ball') {
+                    // 9-Ball Diamond Rack: 1-Ball at apex (col 0), 9-Ball in center (col 2, mid)
+                    const otherIds = [2, 3, 4, 5, 6, 7, 8];
+                    const diamondOffsets = [
+                        { col: 0, rowOffset: 0,   id: 1 },
+                        { col: 1, rowOffset: -0.5, id: otherIds[0] },
+                        { col: 1, rowOffset: 0.5,  id: otherIds[1] },
+                        { col: 2, rowOffset: -1,   id: otherIds[2] },
+                        { col: 2, rowOffset: 0,    id: 9 }, // 9-Ball in heart of diamond
+                        { col: 2, rowOffset: 1,    id: otherIds[3] },
+                        { col: 3, rowOffset: -0.5, id: otherIds[4] },
+                        { col: 3, rowOffset: 0.5,  id: otherIds[5] },
+                        { col: 4, rowOffset: 0,    id: otherIds[6] }
+                    ];
+
+                    diamondOffsets.forEach(spot => {
+                        const bx = FOOT_SPOT_X + spot.col * spacingX;
+                        const by = FOOT_SPOT_Y + spot.rowOffset * spacingY;
+                        match.balls.push(createBall(spot.id, bx, by));
+                    });
+                } else {
+                    // 15-Ball Triangle Rack (Used for 8-Ball and 14.1 Straight Pool)
+                    // 8-Ball in center of row 2 (index 4); corners opposite suit (1 solid, 1 stripe)
+                    const layoutOrder = [
+                        1,
+                        9, 2,
+                        3, 8, 10,
+                        11, 4, 12, 5,
+                        6, 13, 14, 7, 15
+                    ];
+                    let idx = 0;
+                    for (let col = 0; col < 5; col++) {
+                        for (let row = 0; row <= col; row++) {
+                            const bx = FOOT_SPOT_X + col * spacingX;
+                            const by = FOOT_SPOT_Y + (row - col / 2) * spacingY;
+                            match.balls.push(createBall(layoutOrder[idx++], bx, by));
+                        }
+                    }
+                }
+            }
+
+            function getCueBall() {
+                return match.balls[0];
+            }
+
+            function getLowestActiveBallId() {
+                let minId = 99;
+                for (let i = 1; i < match.balls.length; i++) {
+                    if (!match.balls[i].pocketed && match.balls[i].id < minId) {
+                        minId = match.balls[i].id;
+                    }
+                }
+                return minId;
+            }
+
+            // ============================================================================
+            // 6. HUD & MINI-BALL TRAY RENDERING
+            // ============================================================================
+            function createMiniBallHTML(id) {
+                const meta = BALL_META[id];
+                if (meta.stripe) {
+                    return `<span class="mini-ball bg-white text-slate-900 border border-slate-400">
+                        <span style="position:absolute; inset: 4px 0; background:${meta.color};"></span>
+                        <span style="position:relative; z-index:2; background:white; border-radius:999px; width:12px; height:12px; display:flex; align-items:center; justify-content:center;">${id}</span>
+                    </span>`;
+                }
+                return `<span class="mini-ball text-white" style="background:${meta.color};">${id}</span>`;
+            }
+
+            function updateHUD() {
+                // Game Type Badge
+                if (config.ruleset === '8ball') {
+                    hudGameType.textContent = '8-BALL POOL';
+                    hudLowestBall.classList.add('hidden');
+                } else if (config.ruleset === '9ball') {
+                    hudGameType.textContent = '9-BALL POOL';
+                    const low = getLowestActiveBallId();
+                    if (low < 99) {
+                        hudLowestBall.textContent = `Target First: #${low}`;
+                        hudLowestBall.classList.remove('hidden');
+                    }
+                } else {
+                    hudGameType.textContent = '14.1 STRAIGHT POOL';
+                    hudLowestBall.classList.add('hidden');
+                }
+
+                // Player Names & Active Turn Glow
+                p1NameEl.textContent = 'PLAYER 1';
+                if (config.mode === '1p_ai') {
+                    const aiLabels = { easy: 'CPU (ROOKIE)', medium: 'CPU (CLUB)', hard: 'CPU (SHARK)' };
+                    p2NameEl.textContent = aiLabels[config.aiDifficulty];
+                    p2Icon.className = 'fa-solid fa-robot text-xs sm:text-sm';
+                    p2Card.classList.remove('hidden');
+                } else if (config.mode === '2p_local') {
+                    p2NameEl.textContent = 'PLAYER 2';
+                    p2Icon.className = 'fa-solid fa-user-group text-xs sm:text-sm';
+                    p2Card.classList.remove('hidden');
+                } else {
+                    p2Card.classList.add('hidden');
+                }
+
+                p1Card.classList.toggle('active-turn', match.turn === 1);
+                p2Card.classList.toggle('active-turn', match.turn === 2 && config.mode !== 'solo');
+
+                // Remaining Target Balls / Score Display per Ruleset
+                if (config.ruleset === '8ball') {
+                    if (match.tableOpen) {
+                        p1GroupBadge.textContent = 'OPEN';
+                        p2GroupBadge.textContent = 'OPEN';
+                        p1RackEl.innerHTML = `<span class="text-[10px] text-slate-400">Sink any Solid or Stripe</span>`;
+                        p2RackEl.innerHTML = `<span class="text-[10px] text-slate-400">Sink any Solid or Stripe</span>`;
+                    } else {
+                        p1GroupBadge.textContent = match.p1Group.toUpperCase();
+                        p2GroupBadge.textContent = match.p2Group.toUpperCase();
+                        p1RackEl.innerHTML = renderRemaining8BallIcons(match.p1Group);
+                        p2RackEl.innerHTML = renderRemaining8BallIcons(match.p2Group);
+                    }
+                } else if (config.ruleset === '9ball') {
+                    p1GroupBadge.textContent = `PTS: ${match.p1Score}`;
+                    p2GroupBadge.textContent = `PTS: ${match.p2Score}`;
+                    const remaining9 = match.balls.slice(1).filter(b => !b.pocketed).map(b => createMiniBallHTML(b.id)).join('');
+                    p1RackEl.innerHTML = remaining9 || `<span class="text-[10px] text-emerald-400">Cleared!</span>`;
+                    p2RackEl.innerHTML = `<span class="text-[10px] text-amber-300">Sink #9 on legal hit to win</span>`;
+                } else {
+                    p1GroupBadge.textContent = `${match.p1Score} PTS`;
+                    p2GroupBadge.textContent = `${match.p2Score} PTS`;
+                    p1RackEl.innerHTML = `<span class="text-[10px] text-emerald-400"> pocketed: ${match.p1Score} balls</span>`;
+                    p2RackEl.innerHTML = `<span class="text-[10px] text-sky-400"> pocketed: ${match.p2Score} balls</span>`;
+                }
+            }
+
+            function renderRemaining8BallIcons(group) {
+                const startId = group === 'solids' ? 1 : 9;
+                const endId = group === 'solids' ? 7 : 15;
+                const activeIds = [];
+                for (let id = startId; id <= endId; id++) {
+                    const ball = match.balls.find(b => b.id === id);
+                    if (ball && !ball.pocketed) activeIds.push(id);
+                }
+                if (activeIds.length === 0) {
+                    return `${createMiniBallHTML(8)} <span class="text-[10px] text-amber-400 font-bold ml-1">Shoot 8-Ball!</span>`;
+                }
+                return activeIds.map(id => createMiniBallHTML(id)).join('');
+            }
+
+            function showTableToast(title, subtitle, duration = 2600) {
+                tableToastTitle.textContent = title;
+                tableToastSub.textContent = subtitle;
+                tableToast.classList.remove('hidden');
+                if (duration > 0) {
+                    clearTimeout(showTableToast._timer);
+                    showTableToast._timer = setTimeout(() => {
+                        if (!match.ballInHand) tableToast.classList.add('hidden');
+                    }, duration);
+                }
+            }
+
+            // ============================================================================
+            // 7. SUB-STEPPED 2D BILLIARDS PHYSICS ENGINE
+            // ============================================================================
+            function canPlaceCueBallAt(x, y) {
+                const minX = PLAY_LEFT + BALL_R + 2;
+                const maxX = match.headStringOnly ? HEAD_STRING_X : PLAY_RIGHT - BALL_R - 2;
+                const minY = PLAY_TOP + BALL_R + 2;
+                const maxY = PLAY_BOTTOM - BALL_R - 2;
+
+                if (x < minX || x > maxX || y < minY || y > maxY) return false;
+
+                // Ensure not overlapping any active object ball or pocket mouth
+                for (let i = 1; i < match.balls.length; i++) {
+                    const b = match.balls[i];
+                    if (!b.pocketed && Math.hypot(x - b.x, y - b.y) < BALL_R * 2 + 2) {
+                        return false;
+                    }
+                }
+                for (let p = 0; p < POCKETS.length; p++) {
+                    if (Math.hypot(x - POCKETS[p].x, y - POCKETS[p].y) < POCKET_R + 4) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            function executeShot(powerRatio) {
+                const cue = getCueBall();
+                if (cue.pocketed || match.state === 'MOVING') return;
+
+                const clampedPower = Math.max(0.06, Math.min(1.0, powerRatio));
+                const speed = clampedPower * MAX_SHOT_SPEED;
+
+                cue.vx = Math.cos(match.aimAngle) * speed;
+                cue.vy = Math.sin(match.aimAngle) * speed;
+                cue.spinX = match.spinX;
+                cue.spinY = match.spinY;
+
+                match.pocketedThisTurn = [];
+                match.firstHitBallId = null;
+                match.railHitsThisTurn = 0;
+                match.ballInHand = false;
+                match.headStringOnly = false;
+                match.pullPower = 0;
+                syncPowerUI(0);
+                tableToast.classList.add('hidden');
+
+                sfx.cueStrike(clampedPower);
+                match.state = 'MOVING';
+                hudStatusMsg.textContent = 'Balls in motion...';
+            }
+
+            function stepPhysics(dt) {
+                const subDt = dt / SUBSTEPS;
+
+                // Update Pocket Drop Shrink Animations
+                for (let i = match.pocketAnimations.length - 1; i >= 0; i--) {
+                    const pa = match.pocketAnimations[i];
+                    pa.scale -= dt * 3.2;
+                    pa.x += (pa.px - pa.x) * dt * 10;
+                    pa.y += (pa.py - pa.y) * dt * 10;
+                    if (pa.scale <= 0) match.pocketAnimations.splice(i, 1);
+                }
+
+                if (match.state !== 'MOVING') return;
+
+                let anyMoving = false;
+
+                for (let step = 0; step < SUBSTEPS; step++) {
+                    // 1. Advance Ball Positions & Apply Felt Friction
+                    for (let i = 0; i < match.balls.length; i++) {
+                        const b = match.balls[i];
+                        if (b.pocketed) continue;
+
+                        b.x += b.vx * subDt;
+                        b.y += b.vy * subDt;
+
+                        const speed = Math.hypot(b.vx, b.vy);
+                        if (speed > 2.0) {
+                            anyMoving = true;
+                            b.rollPhase += speed * subDt * 0.05;
+
+                            // Ultra-low-friction tournament felt so balls glide long distances at natural speed
+                            const decel = (speed < 12 ? 48 : 22) + speed * 0.045;
+                            const nextSpeed = Math.max(0, speed - decel * subDt);
+                            b.vx = (b.vx / speed) * nextSpeed;
+                            b.vy = (b.vy / speed) * nextSpeed;
+                        } else {
+                            b.vx = 0;
+                            b.vy = 0;
+                        }
+
+                        // 2. Check Pocket Capture
+                        let fellInPocket = false;
+                        for (let p = 0; p < POCKETS.length; p++) {
+                            const pk = POCKETS[p];
+                            const distToPocket = Math.hypot(b.x - pk.x, b.y - pk.y);
+                            if (distToPocket < POCKET_R) {
+                                b.pocketed = true;
+                                b.vx = 0;
+                                b.vy = 0;
+                                match.pocketedThisTurn.push(b.id);
+                                match.pocketAnimations.push({
+                                    id: b.id,
+                                    x: b.x,
+                                    y: b.y,
+                                    px: pk.x,
+                                    py: pk.y,
+                                    scale: 1.0
+                                });
+                                sfx.pocketDrop();
+                                fellInPocket = true;
+                                break;
+                            }
+                        }
+                        if (fellInPocket) continue;
+
+                        // 3. Cushion Rail Rebounds (Skip rail bounce right inside pocket jaws)
+                        const nearMiddleX = Math.abs(b.x - (PLAY_LEFT + PLAY_W / 2)) < POCKET_R * 1.15;
+                        const nearCornerX = (b.x - PLAY_LEFT < POCKET_R * 1.1) || (PLAY_RIGHT - b.x < POCKET_R * 1.1);
+                        const nearCornerY = (b.y - PLAY_TOP < POCKET_R * 1.1) || (PLAY_BOTTOM - b.y < POCKET_R * 1.1);
+
+                        const restitution = 0.88;
+                        if (!nearCornerY) {
+                            if (b.x - BALL_R < PLAY_LEFT) {
+                                b.x = PLAY_LEFT + BALL_R;
+                                b.vx = Math.abs(b.vx) * restitution;
+                                // Apply side English throw on rail contact
+                                b.vy += b.spinX * 95;
+                                b.spinX *= 0.5;
+                                match.railHitsThisTurn++;
+                                if (step === 0) sfx.railBounce(Math.abs(b.vx));
+                            } else if (b.x + BALL_R > PLAY_RIGHT) {
+                                b.x = PLAY_RIGHT - BALL_R;
+                                b.vx = -Math.abs(b.vx) * restitution;
+                                b.vy -= b.spinX * 95;
+                                b.spinX *= 0.5;
+                                match.railHitsThisTurn++;
+                                if (step === 0) sfx.railBounce(Math.abs(b.vx));
+                            }
+                        }
+
+                        if (!nearCornerX && !nearMiddleX) {
+                            if (b.y - BALL_R < PLAY_TOP) {
+                                b.y = PLAY_TOP + BALL_R;
+                                b.vy = Math.abs(b.vy) * restitution;
+                                b.vx -= b.spinX * 95;
+                                b.spinX *= 0.5;
+                                match.railHitsThisTurn++;
+                                if (step === 0) sfx.railBounce(Math.abs(b.vy));
+                            } else if (b.y + BALL_R > PLAY_BOTTOM) {
+                                b.y = PLAY_BOTTOM - BALL_R;
+                                b.vy = -Math.abs(b.vy) * restitution;
+                                b.vx += b.spinX * 95;
+                                b.spinX *= 0.5;
+                                match.railHitsThisTurn++;
+                                if (step === 0) sfx.railBounce(Math.abs(b.vy));
+                            }
+                        }
+                    }
+
+                    // 4. Elastic Ball-to-Ball Collisions
+                    for (let i = 0; i < match.balls.length; i++) {
+                        const b1 = match.balls[i];
+                        if (b1.pocketed) continue;
+
+                        for (let j = i + 1; j < match.balls.length; j++) {
+                            const b2 = match.balls[j];
+                            if (b2.pocketed) continue;
+
+                            const dx = b2.x - b1.x;
+                            const dy = b2.y - b1.y;
+                            const distSq = dx * dx + dy * dy;
+                            const minDist = BALL_R * 2;
+
+                            if (distSq < minDist * minDist && distSq > 0.0001) {
+                                const dist = Math.sqrt(distSq);
+                                const nx = dx / dist;
+                                const ny = dy / dist;
+
+                                // Separate overlapping balls equally
+                                const overlap = (minDist - dist) * 0.5;
+                                b1.x -= nx * overlap;
+                                b1.y -= ny * overlap;
+                                b2.x += nx * overlap;
+                                b2.y += ny * overlap;
+
+                                // Relative velocity along collision normal
+                                const kx = b1.vx - b2.vx;
+                                const ky = b1.vy - b2.vy;
+                                const p = nx * kx + ny * ky;
+
+                                if (p > 0) {
+                                    // Record very first object ball struck by the Cue Ball
+                                    if (b1.id === 0 && match.firstHitBallId === null) {
+                                        match.firstHitBallId = b2.id;
+                                    }
+
+                                    const elasticity = 0.97;
+                                    b1.vx -= p * nx * elasticity;
+                                    b1.vy -= p * ny * elasticity;
+                                    b2.vx += p * nx * elasticity;
+                                    b2.vy += p * ny * elasticity;
+
+                                    // Apply Cue Ball Top Follow / Bottom Draw Spin on first object contact
+                                    if (b1.id === 0 && (Math.abs(b1.spinY) > 0.05 || Math.abs(b1.spinX) > 0.05)) {
+                                        const followForce = b1.spinY * p * 0.65;
+                                        b1.vx += nx * followForce;
+                                        b1.vy += ny * followForce;
+                                        b1.spinY *= 0.25;
+                                    }
+
+                                    sfx.ballClack(p);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // When all balls come to a complete rest, evaluate turn rules!
+                if (!anyMoving && match.pocketAnimations.length === 0) {
+                    evaluateTurnOutcome();
+                }
+            }
+
+            // ============================================================================
+            // 8. RULESET EVALUATION (8-BALL, 9-BALL & 14.1 STRAIGHT POOL)
+            // ============================================================================
+            function getBallGroup(id) {
+                if (id >= 1 && id <= 7) return 'solids';
+                if (id >= 9 && id <= 15) return 'stripes';
+                if (id === 8) return 'eight';
+                return 'cue';
+            }
+
+            function evaluateTurnOutcome() {
+                const cue = getCueBall();
+                const scratched = match.pocketedThisTurn.includes(0);
+                const objectPocketed = match.pocketedThisTurn.filter(id => id !== 0);
+                const activeGroup = match.turn === 1 ? match.p1Group : match.p2Group;
+                const playerLabel = getPlayerName(match.turn);
+
+                let foulReason = null;
+                let keepTurn = false;
+
+                // Respawn cue ball if scratched
+                if (scratched) {
+                    cue.pocketed = false;
+                    cue.vx = 0;
+                    cue.vy = 0;
+                    foulReason = 'Scratch! Cue ball pocketed.';
+                }
+
+                // --- RULESET 1: 8-BALL POOL ---
+                if (config.ruleset === '8ball') {
+                    const sunk8 = objectPocketed.includes(8);
+
+                    if (sunk8) {
+                        // Did player legally clear their group first?
+                        const myGroupCleared = !match.tableOpen && countRemainingGroupBalls(activeGroup) === 0;
+                        if (scratched) {
+                            endMatch(getOtherTurn(), `${playerLabel} scratched on the 8-Ball!`);
+                            return;
+                        } else if (match.isBreakShot) {
+                            // Spot the 8-ball on break if sunk, or win! Let's spot 8-ball if scratched, else win on break!
+                            endMatch(match.turn, `${playerLabel} sank the 8-Ball on the break!`);
+                            return;
+                        } else if (!myGroupCleared) {
+                            endMatch(getOtherTurn(), `${playerLabel} sank the 8-Ball early!`);
+                            return;
+                        } else {
+                            endMatch(match.turn, `${playerLabel} legally pocketed the 8-Ball!`);
+                            return;
+                        }
+                    }
+
+                    if (!foulReason) {
+                        if (match.firstHitBallId === null) {
+                            foulReason = 'Foul! Cue ball did not strike any ball.';
+                        } else if (!match.tableOpen) {
+                            const myGroupRemaining = countRemainingGroupBalls(activeGroup);
+                            const hitGroup = getBallGroup(match.firstHitBallId);
+                            if (myGroupRemaining > 0 && hitGroup !== activeGroup) {
+                                foulReason = `Foul! Must hit ${activeGroup.toUpperCase()} first.`;
+                            } else if (myGroupRemaining === 0 && match.firstHitBallId !== 8) {
+                                foulReason = 'Foul! Must hit the 8-Ball first.';
+                            }
+                        }
+                    }
+
+                    if (!foulReason && objectPocketed.length > 0) {
+                        if (match.tableOpen && !match.isBreakShot) {
+                            // Assign solids/stripes based on first sunk ball
+                            const firstGroup = getBallGroup(objectPocketed[0]);
+                            if (firstGroup === 'solids' || firstGroup === 'stripes') {
+                                match.tableOpen = false;
+                                if (match.turn === 1) {
+                                    match.p1Group = firstGroup;
+                                    match.p2Group = firstGroup === 'solids' ? 'stripes' : 'solids';
+                                } else {
+                                    match.p2Group = firstGroup;
+                                    match.p1Group = firstGroup === 'solids' ? 'stripes' : 'solids';
+                                }
+                                showTableToast(
+                                    `${playerLabel} CLAIMS ${firstGroup.toUpperCase()}!`,
+                                    'Groups are now locked in for the match'
+                                );
+                                keepTurn = true;
+                            }
+                        } else if (match.tableOpen && match.isBreakShot) {
+                            keepTurn = true; // Table stays open after break, shooter continues
+                        } else {
+                            // Keep turn if player sank at least one of their own group
+                            const sankOwn = objectPocketed.some(id => getBallGroup(id) === activeGroup);
+                            if (sankOwn) keepTurn = true;
+                        }
+                    }
+                }
+
+                // --- RULESET 2: 9-BALL POOL ---
+                else if (config.ruleset === '9ball') {
+                    // Find what the lowest ball on the table WAS at the start of the shot
+                    const allActivePlusSunk = match.balls
+                        .slice(1)
+                        .filter(b => !b.pocketed || objectPocketed.includes(b.id))
+                        .map(b => b.id);
+                    const lowestAtShotStart = Math.min(...allActivePlusSunk);
+
+                    if (!foulReason) {
+                        if (match.firstHitBallId === null) {
+                            foulReason = `Foul! Missed the #${lowestAtShotStart} ball.`;
+                        } else if (match.firstHitBallId !== lowestAtShotStart) {
+                            foulReason = `Foul! Must strike lowest ball (#${lowestAtShotStart}) first.`;
+                        }
+                    }
+
+                    const sunk9 = objectPocketed.includes(9);
+                    if (sunk9) {
+                        if (!foulReason) {
+                            if (match.turn === 1) match.p1Score += objectPocketed.length;
+                            else match.p2Score += objectPocketed.length;
+                            endMatch(match.turn, `${playerLabel} legally sank the 9-Ball!`);
+                            return;
+                        } else {
+                            // Spot the 9-Ball back on the foot spot on a foul!
+                            const ball9 = match.balls.find(b => b.id === 9);
+                            if (ball9) {
+                                ball9.pocketed = false;
+                                spotBallSafely(ball9, FOOT_SPOT_X, FOOT_SPOT_Y);
+                            }
+                        }
+                    }
+
+                    if (!foulReason && objectPocketed.length > 0) {
+                        if (match.turn === 1) match.p1Score += objectPocketed.length;
+                        else match.p2Score += objectPocketed.length;
+                        keepTurn = true;
+                    }
+                }
+
+                // --- RULESET 3: 14.1 STRAIGHT / SPEED POOL ---
+                else if (config.ruleset === 'straight') {
+                    if (!foulReason && match.firstHitBallId === null) {
+                        foulReason = 'Foul! Cue ball did not hit any object ball.';
+                    }
+
+                    if (!foulReason && objectPocketed.length > 0) {
+                        if (match.turn === 1) match.p1Score += objectPocketed.length;
+                        else match.p2Score += objectPocketed.length;
+                        keepTurn = true;
+                    }
+
+                    // Check if all 15 balls are pocketed
+                    const remainingObj = match.balls.slice(1).filter(b => !b.pocketed).length;
+                    if (remainingObj === 0) {
+                        const winner = config.mode === 'solo' ? 1 : (match.p1Score >= match.p2Score ? 1 : 2);
+                        endMatch(winner, `All 15 balls cleared! Final Score: ${match.p1Score} - ${match.p2Score}`);
+                        return;
+                    }
+                }
+
+                match.isBreakShot = false;
+
+                // Handle Foul vs Legal Continuation
+                if (foulReason) {
+                    sfx.foulBuzz();
+                    if (config.mode !== 'solo') {
+                        match.turn = getOtherTurn();
+                    }
+                    match.totalTurns++;
+                    match.ballInHand = true;
+                    match.headStringOnly = false;
+
+                    // If scratched, place cue ball smoothly at a default open spot
+                    if (scratched) {
+                        spotBallSafely(cue, HEAD_STRING_X, FOOT_SPOT_Y);
+                    }
+
+                    const nextPlayer = getPlayerName(match.turn);
+                    showTableToast(foulReason, `${nextPlayer} has Ball-in-Hand anywhere on the table`, 3200);
+                } else if (!keepTurn) {
+                    if (config.mode !== 'solo') {
+                        match.turn = getOtherTurn();
+                    }
+                    match.totalTurns++;
+                }
+
+                updateHUD();
+                prepareNextTurnState();
+            }
+
+            function countRemainingGroupBalls(group) {
+                const startId = group === 'solids' ? 1 : 9;
+                const endId = group === 'solids' ? 7 : 15;
+                let count = 0;
+                for (let id = startId; id <= endId; id++) {
+                    const b = match.balls.find(ball => ball.id === id);
+                    if (b && !b.pocketed) count++;
+                }
+                return count;
+            }
+
+            function spotBallSafely(ball, startX, startY) {
+                ball.x = startX;
+                ball.y = startY;
+                ball.vx = 0;
+                ball.vy = 0;
+                let offset = 0;
+                while (!canPlaceCueBallAt(ball.x, ball.y) && offset < 300) {
+                    offset += 12;
+                    ball.x = Math.min(PLAY_RIGHT - BALL_R * 2, startX + offset);
+                }
+            }
+
+            function getOtherTurn() {
+                return match.turn === 1 ? 2 : 1;
+            }
+
+            function getPlayerName(turnNum) {
+                if (turnNum === 1) return 'Player 1';
+                return config.mode === '1p_ai' ? 'CPU' : 'Player 2';
+            }
+
+            function prepareNextTurnState() {
+                if (config.mode === '1p_ai' && match.turn === 2) {
+                    match.state = 'AI_THINKING';
+                    match.aiTimer = 1.1;
+                    hudStatusMsg.textContent = 'CPU is lining up its shot...';
+                } else {
+                    match.state = 'AIMING';
+                    const pName = getPlayerName(match.turn);
+                    hudStatusMsg.textContent = match.ballInHand
+                        ? `${pName}: Ball-in-Hand (Drag cue ball or aim & shoot)`
+                        : `${pName}'s Turn — Aim & pull back power to shoot`;
+                }
+            }
+
+            function endMatch(winnerTurn, reasonText) {
+                match.state = 'GAMEOVER';
+                sfx.victoryFanfare();
+
+                const winnerName = config.mode === 'solo' ? 'RACK CLEARED!' : `${getPlayerName(winnerTurn).toUpperCase()} WINS!`;
+                document.getElementById('win-title').textContent = winnerName;
+                document.getElementById('win-reason').textContent = reasonText;
+                document.getElementById('win-turns').textContent = match.totalTurns;
+
+                const pocketedTotal = match.balls.slice(1).filter(b => b.pocketed).length;
+                document.getElementById('win-pocketed').textContent = pocketedTotal;
+                gameoverOverlay.classList.remove('hidden');
+            }
+
+            // ============================================================================
+            // 9. SMART AI OPPONENT CONTROLLER (Calculates Ghost-Ball Cut Angles)
+            // ============================================================================
+            function updateAI(dt) {
+                if (match.state !== 'AI_THINKING') return;
+                match.aiTimer -= dt;
+                if (match.aiTimer > 0) return;
+
+                const cue = getCueBall();
+
+                // If AI has Ball-in-Hand, place cue ball in a clean central position
+                if (match.ballInHand) {
+                    spotBallSafely(cue, HEAD_STRING_X, FOOT_SPOT_Y + (Math.random() - 0.5) * 80);
+                    match.ballInHand = false;
+                    tableToast.classList.add('hidden');
+                }
+
+                // Determine valid target balls for AI
+                const candidateBalls = match.balls.slice(1).filter(b => {
+                    if (b.pocketed) return false;
+                    if (config.ruleset === '9ball') {
+                        return b.id === getLowestActiveBallId();
+                    }
+                    if (config.ruleset === '8ball' && !match.tableOpen) {
+                        const rem = countRemainingGroupBalls(match.p2Group);
+                        if (rem === 0) return b.id === 8;
+                        return getBallGroup(b.id) === match.p2Group;
+                    }
+                    return b.id !== 8;
+                });
+
+                // Evaluate every (targetBall, pocket) pair to find the cleanest straight-in ghost ball shot
+                let bestAngle = 0;
+                let bestScore = -Infinity;
+                let bestPower = 0.65;
+
+                candidateBalls.forEach(target => {
+                    POCKETS.forEach(pk => {
+                        // Ghost ball position: 2*BALL_R behind target ball along the Pocket -> Target vector
+                        const toPocketX = pk.x - target.x;
+                        const toPocketY = pk.y - target.y;
+                        const distToPocket = Math.hypot(toPocketX, toPocketY);
+                        const ux = toPocketX / distToPocket;
+                        const uy = toPocketY / distToPocket;
+
+                        const ghostX = target.x - ux * (BALL_R * 2);
+                        const ghostY = target.y - uy * (BALL_R * 2);
+
+                        const cueToGhostX = ghostX - cue.x;
+                        const cueToGhostY = ghostY - cue.y;
+                        const distCueToGhost = Math.hypot(cueToGhostX, cueToGhostY);
+                        const cx = cueToGhostX / distCueToGhost;
+                        const cy = cueToGhostY / distCueToGhost;
+
+                        // Dot product measures how straight the cut angle is (1.0 = dead straight, >0.25 = makeable cut)
+                        const cutAlignment = cx * ux + cy * uy;
+                        if (cutAlignment > 0.2) {
+                            const shotScore = cutAlignment * 120 - (distToPocket + distCueToGhost) * 0.08;
+                            if (shotScore > bestScore) {
+                                bestScore = shotScore;
+                                bestAngle = Math.atan2(cueToGhostY, cueToGhostX);
+                                bestPower = Math.min(0.85, Math.max(0.38, (distToPocket + distCueToGhost) / 950));
+                            }
+                        }
+                    });
+                });
+
+                // Fallback if no direct pocket cut is available: hit first valid target ball directly
+                if (bestScore === -Infinity && candidateBalls.length > 0) {
+                    const t = candidateBalls[0];
+                    bestAngle = Math.atan2(t.y - cue.y, t.x - cue.x);
+                    bestPower = 0.55;
+                }
+
+                // Add AI skill inaccuracy spread
+                const errorSpread = config.aiDifficulty === 'easy' ? 0.09 : config.aiDifficulty === 'medium' ? 0.032 : 0.006;
+                match.aimAngle = bestAngle + (Math.random() - 0.5) * errorSpread;
+                match.spinX = 0;
+                match.spinY = 0;
+
+                if (match.isBreakShot) {
+                    match.aimAngle = Math.atan2(FOOT_SPOT_Y - cue.y, FOOT_SPOT_X - cue.x) + (Math.random() - 0.5) * 0.02;
+                    bestPower = 0.95;
+                }
+
+                executeShot(bestPower);
+            }
+
+            // ============================================================================
+            // 10. GHOST-BALL RAYCASTER & TABLE RENDERER
+            // ============================================================================
+            function computeAimRay(cue, angle) {
+                const dirX = Math.cos(angle);
+                const dirY = Math.sin(angle);
+
+                let closestT = Infinity;
+                let hitBall = null;
+
+                // Ray-circle intersection (swept circle of radius 2 * BALL_R against each object ball)
+                const sweepR = BALL_R * 2;
+                for (let i = 1; i < match.balls.length; i++) {
+                    const b = match.balls[i];
+                    if (b.pocketed) continue;
+
+                    const ox = b.x - cue.x;
+                    const oy = b.y - cue.y;
+                    const proj = ox * dirX + oy * dirY;
+                    if (proj <= 0) continue;
+
+                    const perpSq = (ox * ox + oy * oy) - proj * proj;
+                    if (perpSq < sweepR * sweepR) {
+                        const thc = Math.sqrt(sweepR * sweepR - perpSq);
+                        const t = proj - thc;
+                        if (t > 0 && t < closestT) {
+                            closestT = t;
+                            hitBall = b;
+                        }
+                    }
+                }
+
+                // Also check distance to cushion walls if no ball is hit first
+                const wallRightT = dirX > 0 ? (PLAY_RIGHT - BALL_R - cue.x) / dirX : Infinity;
+                const wallLeftT  = dirX < 0 ? (PLAY_LEFT + BALL_R - cue.x) / dirX  : Infinity;
+                const wallBotT   = dirY > 0 ? (PLAY_BOTTOM - BALL_R - cue.y) / dirY : Infinity;
+                const wallTopT   = dirY < 0 ? (PLAY_TOP + BALL_R - cue.y) / dirY    : Infinity;
+                const minWallT = Math.min(wallRightT, wallLeftT, wallBotT, wallTopT);
+
+                if (minWallT < closestT) {
+                    return {
+                        ghostX: cue.x + dirX * minWallT,
+                        ghostY: cue.y + dirY * minWallT,
+                        hitBall: null
+                    };
+                }
+
+                return {
+                    ghostX: cue.x + dirX * closestT,
+                    ghostY: cue.y + dirY * closestT,
+                    hitBall
+                };
+            }
+
+            function renderTable() {
+                const theme = FELT_THEMES[config.felt];
+
+                // 1. Outer Mahogany / Cyber Wood Rails
+                ctx.fillStyle = theme.wood;
+                ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
+
+                // Wood Bevel Border
+                ctx.strokeStyle = theme.woodBorder;
+                ctx.lineWidth = 8;
+                ctx.strokeRect(4, 4, LOGICAL_W - 8, LOGICAL_H - 8);
+
+                // Brass Corner & Side Plates
+                ctx.fillStyle = '#b45309';
+                POCKETS.forEach(pk => {
+                    ctx.beginPath();
+                    ctx.arc(pk.x, pk.y, POCKET_R + 10, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // 2. Cushion Bevel Frame
+                ctx.fillStyle = theme.cushion;
+                ctx.fillRect(PLAY_LEFT - 12, PLAY_TOP - 12, PLAY_W + 24, PLAY_H + 24);
+
+                // 3. Radial Gradient Billiard Felt Surface
+                const feltGrad = ctx.createRadialGradient(
+                    LOGICAL_W / 2, LOGICAL_H / 2, 60,
+                    LOGICAL_W / 2, LOGICAL_H / 2, PLAY_W * 0.65
+                );
+                feltGrad.addColorStop(0, theme.inner);
+                feltGrad.addColorStop(1, theme.outer);
+                ctx.fillStyle = feltGrad;
+                ctx.fillRect(PLAY_LEFT, PLAY_TOP, PLAY_W, PLAY_H);
+
+                // 4. Diamond Rail Sights (18 Pearl Diamonds around the rails)
+                ctx.fillStyle = '#fde68a';
+                const sectionW = PLAY_W / 8;
+                for (let i = 1; i <= 7; i++) {
+                    if (i === 4) continue; // Middle pocket
+                    const dx = PLAY_LEFT + i * sectionW;
+                    drawDiamondSight(dx, PLAY_TOP * 0.46);
+                    drawDiamondSight(dx, LOGICAL_H - PLAY_TOP * 0.46);
+                }
+                const sectionH = PLAY_H / 4;
+                for (let j = 1; j <= 3; j++) {
+                    const dy = PLAY_TOP + j * sectionH;
+                    drawDiamondSight(PLAY_LEFT * 0.46, dy);
+                    drawDiamondSight(LOGICAL_W - PLAY_LEFT * 0.46, dy);
+                }
+
+                // 5. Head String Line & Foot Spot Marker
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.moveTo(HEAD_STRING_X, PLAY_TOP);
+                ctx.lineTo(HEAD_STRING_X, PLAY_BOTTOM);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+                ctx.beginPath();
+                ctx.arc(FOOT_SPOT_X, FOOT_SPOT_Y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                // 6. Six Leather Pockets
+                POCKETS.forEach(pk => {
+                    ctx.save();
+                    ctx.fillStyle = '#04060c';
+                    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(pk.x, pk.y, POCKET_R, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#334155';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.restore();
+                });
+
+                // 7. Pocketed Ball Drop Animations
+                match.pocketAnimations.forEach(pa => {
+                    ctx.save();
+                    ctx.translate(pa.x, pa.y);
+                    ctx.scale(Math.max(0.1, pa.scale), Math.max(0.1, pa.scale));
+                    drawSingleBall({ id: pa.id, x: 0, y: 0, rollPhase: 0 });
+                    ctx.restore();
+                });
+
+                // 8. Draw All Active Billiard Balls
+                match.balls.forEach(b => {
+                    if (!b.pocketed) {
+                        drawSingleBall(b);
+                    }
+                });
+
+                // Highlight Ball-in-Hand Halo on Cue Ball
+                const cue = getCueBall();
+                if (match.state === 'AIMING' && match.ballInHand && !cue.pocketed) {
+                    ctx.save();
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([5, 4]);
+                    ctx.beginPath();
+                    ctx.arc(cue.x, cue.y, BALL_R + 7, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 9. Draw Ghost-Ball Laser Sight & Cue Stick when Aiming
+                if (match.state === 'AIMING' && !cue.pocketed) {
+                    drawAimingGuideAndCue(cue);
+                }
+            }
+
+            function drawDiamondSight(x, y) {
+                ctx.beginPath();
+                ctx.moveTo(x, y - 4);
+                ctx.lineTo(x + 4, y);
+                ctx.lineTo(x, y + 4);
+                ctx.lineTo(x - 4, y);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            function drawSingleBall(b) {
+                const meta = BALL_META[b.id];
+                ctx.save();
+                ctx.translate(b.x, b.y);
+
+                // Soft drop shadow on felt
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+                ctx.beginPath();
+                ctx.arc(3, 4, BALL_R, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Base sphere
+                ctx.beginPath();
+                ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+                ctx.fillStyle = meta.stripe ? '#f8fafc' : meta.color;
+                ctx.fill();
+
+                // Stripe Band for Balls 9–15
+                if (meta.stripe) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+                    ctx.clip();
+                    ctx.fillStyle = meta.color;
+                    ctx.fillRect(-BALL_R, -BALL_R * 0.56, BALL_R * 2, BALL_R * 1.12);
+                    ctx.restore();
+                }
+
+                // Number Circle Badge (for balls 1–15)
+                if (b.id > 0) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, BALL_R * 0.46, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.font = '800 9.5px "Inter", sans-serif';
+                    ctx.fillStyle = '#0f172a';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(meta.label, 0, 0.5);
+                } else {
+                    // Red measles dot on Cue Ball to show spin visually
+                    const dotX = Math.cos(b.rollPhase) * 4;
+                    const dotY = Math.sin(b.rollPhase) * 4;
+                    ctx.fillStyle = '#dc2626';
+                    ctx.beginPath();
+                    ctx.arc(dotX, dotY, 2.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // 3D Specular Gloss Highlight & Rim Shading
+                const shine = ctx.createRadialGradient(-BALL_R * 0.35, -BALL_R * 0.35, 1, 0, 0, BALL_R);
+                shine.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+                shine.addColorStop(0.35, 'rgba(255, 255, 255, 0.08)');
+                shine.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
+                ctx.fillStyle = shine;
+                ctx.beginPath();
+                ctx.arc(0, 0, BALL_R, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            function drawAimingGuideAndCue(cue) {
+                const ray = computeAimRay(cue, match.aimAngle);
+
+                ctx.save();
+                // 1. Primary Aim Line from Cue Ball to Ghost Ball
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([7, 6]);
+                ctx.beginPath();
+                ctx.moveTo(cue.x, cue.y);
+                ctx.lineTo(ray.ghostX, ray.ghostY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // 2. Ghost Ball Circle & Target Ball / Cue Deflection Vectors
+                let isTargetLegal = true;
+                if (ray.hitBall) {
+                    const hitId = ray.hitBall.id;
+                    if (config.ruleset === '9ball' && hitId !== getLowestActiveBallId()) {
+                        isTargetLegal = false;
+                    } else if (config.ruleset === '8ball' && !match.tableOpen) {
+                        const myGroup = match.turn === 1 ? match.p1Group : match.p2Group;
+                        const rem = countRemainingGroupBalls(myGroup);
+                        if (rem > 0 && getBallGroup(hitId) !== myGroup) isTargetLegal = false;
+                        if (rem === 0 && hitId !== 8) isTargetLegal = false;
+                    }
+                }
+
+                ctx.strokeStyle = isTargetLegal ? '#38bdf8' : '#f43f5e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(ray.ghostX, ray.ghostY, BALL_R, 0, Math.PI * 2);
+                ctx.stroke();
+
+                if (ray.hitBall && isTargetLegal) {
+                    // Target ball impact normal vector (line of centers at impact)
+                    const nx = (ray.hitBall.x - ray.ghostX) / (BALL_R * 2);
+                    const ny = (ray.hitBall.y - ray.ghostY) / (BALL_R * 2);
+
+                    // Target Ball Projected Path
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(ray.hitBall.x, ray.hitBall.y);
+                    ctx.lineTo(ray.hitBall.x + nx * 125, ray.hitBall.y + ny * 125);
+                    ctx.stroke();
+
+                    // Cue Ball Tangent Deflection Path
+                    const dirX = Math.cos(match.aimAngle);
+                    const dirY = Math.sin(match.aimAngle);
+                    const dot = dirX * nx + dirY * ny;
+                    const tangX = dirX - dot * nx;
+                    const tangY = dirY - dot * ny;
+                    const tangLen = Math.hypot(tangX, tangY);
+                    if (tangLen > 0.05) {
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+                        ctx.lineWidth = 1.8;
+                        ctx.beginPath();
+                        ctx.moveTo(ray.ghostX, ray.ghostY);
+                        ctx.lineTo(ray.ghostX + (tangX / tangLen) * 75, ray.ghostY + (tangY / tangLen) * 75);
+                        ctx.stroke();
+                    }
+                }
+                ctx.restore();
+
+                // 3. Draw Tapered Wooden Pool Cue Stick Behind Cue Ball
+                const pullOffset = 22 + match.pullPower * 115;
+                const cueLength = 340;
+
+                ctx.save();
+                ctx.translate(cue.x, cue.y);
+                ctx.rotate(match.aimAngle + Math.PI); // Point away from aim direction
+
+                // Cue shadow
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.lineWidth = 9;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(pullOffset + 4, 6);
+                ctx.lineTo(pullOffset + cueLength + 4, 6);
+                ctx.stroke();
+
+                // Maple Shaft (front half)
+                ctx.strokeStyle = '#fde68a';
+                ctx.lineWidth = 6.5;
+                ctx.beginPath();
+                ctx.moveTo(pullOffset, 0);
+                ctx.lineTo(pullOffset + cueLength * 0.48, 0);
+                ctx.stroke();
+
+                // Blue Chalk Tip & White Ferrule
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 6.5;
+                ctx.beginPath();
+                ctx.moveTo(pullOffset, 0);
+                ctx.lineTo(pullOffset + 8, 0);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 6.5;
+                ctx.beginPath();
+                ctx.moveTo(pullOffset, 0);
+                ctx.lineTo(pullOffset + 3.5, 0);
+                ctx.stroke();
+
+                // Rosewood Butt & Gold Wrap (back half)
+                ctx.strokeStyle = '#7c2d12';
+                ctx.lineWidth = 9.5;
+                ctx.beginPath();
+                ctx.moveTo(pullOffset + cueLength * 0.48, 0);
+                ctx.lineTo(pullOffset + cueLength, 0);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            // ============================================================================
+            // 11. RESPONSIVE SCALING & MAIN ANIMATION LOOP
+            // ============================================================================
+            function resizeTable() {
+                const availW = workspace.clientWidth - 8;
+                const availH = workspace.clientHeight - 8;
+                const aspect = LOGICAL_W / LOGICAL_H;
+
+                let drawW = availW;
+                let drawH = Math.floor(drawW / aspect);
+
+                if (drawH > availH) {
+                    drawH = availH;
+                    drawW = Math.floor(drawH * aspect);
+                }
+
+                drawW = Math.max(290, drawW);
+                drawH = Math.max(155, drawH);
+
+                canvas.width = LOGICAL_W;
+                canvas.height = LOGICAL_H;
+                canvas.style.width = `${drawW}px`;
+                canvas.style.height = `${drawH}px`;
+                tableWrapper.style.width = `${drawW}px`;
+                tableWrapper.style.height = `${drawH}px`;
+
+                renderTable();
+            }
+
+            function clientToLogical(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: ((clientX - rect.left) / rect.width) * LOGICAL_W,
+                    y: ((clientY - rect.top) / rect.height) * LOGICAL_H
+                };
+            }
+
+            let lastTime = performance.now();
+            function gameLoop(now) {
+                const dt = Math.min(0.035, (now - lastTime) / 1000);
+                lastTime = now;
+
+                if (match.state === 'MOVING') {
+                    stepPhysics(dt);
+                } else if (match.state === 'AI_THINKING') {
+                    updateAI(dt);
+                }
+
+                renderTable();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ============================================================================
+            // 12. UNIFIED PC, LAPTOP & MOBILE CONTROLS (Aim, Ball-in-Hand, Pull Cue, Slider)
+            // ============================================================================
+            let pointerMode = null; // 'PLACE_BALL' | 'PULL_CUE' | 'AIM_DRAG'
+
+            function syncPowerUI(ratio) {
+                const pct = Math.round(ratio * 100);
+                powerSlider.value = pct;
+                powerFillBar.style.width = `${pct}%`;
+                powerPctLabel.textContent = `${pct}%`;
+            }
+
+            function handleTablePointerDown(clientX, clientY) {
+                if (match.state !== 'AIMING') return;
+                sfx.init();
+
+                const pt = clientToLogical(clientX, clientY);
+                const cue = getCueBall();
+                const distToCue = Math.hypot(pt.x - cue.x, pt.y - cue.y);
+
+                // 1. If Ball-in-Hand and user grabs near the cue ball, drag cue ball to place it
+                if (match.ballInHand && distToCue < BALL_R * 2.4) {
+                    pointerMode = 'PLACE_BALL';
+                    return;
+                }
+
+                // 2. Otherwise aim toward pointer and allow pulling back for power
+                match.aimAngle = Math.atan2(pt.y - cue.y, pt.x - cue.x);
+                pointerMode = 'AIM_DRAG';
+                match.dragStartX = pt.x;
+                match.dragStartY = pt.y;
+            }
+
+            function handleTablePointerMove(clientX, clientY, isPressed) {
+                if (match.state !== 'AIMING') return;
+                const pt = clientToLogical(clientX, clientY);
+                const cue = getCueBall();
+
+                if (isPressed && pointerMode === 'PLACE_BALL') {
+                    if (canPlaceCueBallAt(pt.x, pt.y)) {
+                        cue.x = pt.x;
+                        cue.y = pt.y;
+                    }
+                    return;
+                }
+
+                // Aim cue stick toward pointer
+                if (!isPressed || pointerMode === 'AIM_DRAG') {
+                    match.aimAngle = Math.atan2(pt.y - cue.y, pt.x - cue.x);
+                }
+            }
+
+            function handleTablePointerUp() {
+                pointerMode = null;
+            }
+
+            // Mouse Listeners on Table
+            let mouseDownOnTable = false;
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                mouseDownOnTable = true;
+                handleTablePointerDown(e.clientX, e.clientY);
+            });
+            window.addEventListener('mousemove', (e) => {
+                handleTablePointerMove(e.clientX, e.clientY, mouseDownOnTable);
+            });
+            window.addEventListener('mouseup', () => {
+                if (mouseDownOnTable) {
+                    mouseDownOnTable = false;
+                    handleTablePointerUp();
+                }
+            });
+
+            // Touch Listeners on Table
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1) return;
+                e.preventDefault();
+                handleTablePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.touches.length !== 1) return;
+                e.preventDefault();
+                handleTablePointerMove(e.touches[0].clientX, e.touches[0].clientY, true);
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', () => {
+                handleTablePointerUp();
+            });
+
+            // Power Slider Pull & Release to Shoot
+            powerSlider.addEventListener('input', () => {
+                if (match.state !== 'AIMING') {
+                    powerSlider.value = 0;
+                    return;
+                }
+                match.pullPower = parseInt(powerSlider.value, 10) / 100;
+                syncPowerUI(match.pullPower);
+            });
+
+            const releaseSliderShot = () => {
+                if (match.state === 'AIMING' && match.pullPower >= 0.06) {
+                    executeShot(match.pullPower);
+                } else {
+                    match.pullPower = 0;
+                    syncPowerUI(0);
+                }
+            };
+            powerSlider.addEventListener('change', releaseSliderShot);
+            powerSlider.addEventListener('touchend', releaseSliderShot);
+
+            // Quick Shoot Button (fires a crisp 68% power shot at current aim angle)
+            btnQuickShoot.addEventListener('click', () => {
+                if (match.state !== 'AIMING') return;
+                sfx.init();
+                const pwr = match.pullPower > 0.08 ? match.pullPower : 0.68;
+                executeShot(pwr);
+            });
+
+            // Fine-Aim Micro Adjust Buttons
+            btnAimLeft.addEventListener('click', () => {
+                if (match.state === 'AIMING') match.aimAngle -= 0.018;
+            });
+            btnAimRight.addEventListener('click', () => {
+                if (match.state === 'AIMING') match.aimAngle += 0.018;
+            });
+
+            // Interactive Cue Spin (English) Selector Pad
+            function updateSpinFromEvent(e) {
+                const rect = spinPad.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const maxR = rect.width * 0.36;
+
+                let dx = clientX - cx;
+                let dy = clientY - cy;
+                const dist = Math.hypot(dx, dy);
+                if (dist > maxR) {
+                    dx = (dx / dist) * maxR;
+                    dy = (dy / dist) * maxR;
+                }
+
+                match.spinX = dx / maxR;
+                match.spinY = -dy / maxR; // Up = Top Follow (+1), Down = Back Draw (-1)
+                spinDot.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+            }
+
+            spinPad.addEventListener('mousedown', updateSpinFromEvent);
+            spinPad.addEventListener('touchstart', (e) => { e.preventDefault(); updateSpinFromEvent(e); }, { passive: false });
+            btnResetSpin.addEventListener('click', () => {
+                match.spinX = 0;
+                match.spinY = 0;
+                spinDot.style.transform = 'translate(0px, 0px)';
+            });
+
+            // Keyboard Controls (A/D or Left/Right Arrows for Fine Aim, Spacebar Hold & Release for Power)
+            let spaceCharging = false;
+            window.addEventListener('keydown', (e) => {
+                if (match.state !== 'AIMING') return;
+                const k = e.key;
+                if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+                    e.preventDefault();
+                    match.aimAngle -= e.shiftKey ? 0.005 : 0.025;
+                } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+                    e.preventDefault();
+                    match.aimAngle += e.shiftKey ? 0.005 : 0.025;
+                } else if (k === ' ') {
+                    e.preventDefault();
+                    spaceCharging = true;
+                    match.pullPower = Math.min(1.0, match.pullPower + 0.035);
+                    syncPowerUI(match.pullPower);
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === ' ' && spaceCharging) {
+                    spaceCharging = false;
+                    if (match.state === 'AIMING' && match.pullPower >= 0.06) {
+                        executeShot(match.pullPower);
+                    }
+                }
+            });
+
+            // ============================================================================
+            // 13. MENU & SETTINGS MODAL WIRING
+            // ============================================================================
+            function startNewMatch() {
+                sfx.init();
+                match.turn = 1;
+                match.totalTurns = 1;
+                match.isBreakShot = true;
+                match.ballInHand = true;
+                match.headStringOnly = true;
+                match.tableOpen = true;
+                match.p1Group = null;
+                match.p2Group = null;
+                match.p1Score = 0;
+                match.p2Score = 0;
+                match.aimAngle = 0;
+                match.pullPower = 0;
+                match.spinX = 0;
+                match.spinY = 0;
+                spinDot.style.transform = 'translate(0px, 0px)';
+                syncPowerUI(0);
+
+                setupRack();
+                updateHUD();
+
+                menuOverlay.classList.add('hidden');
+                gameoverOverlay.classList.add('hidden');
+                btnResumeMatch.classList.remove('hidden');
+
+                match.state = 'AIMING';
+                showTableToast('BREAK SHOT!', 'Drag cue ball inside kitchen or aim & shoot to break the rack', 3500);
+            }
+
+            function bindOptionGroup(groupId, attrName, configKey) {
+                document.querySelectorAll(`#${groupId} .option-pill`).forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll(`#${groupId} .option-pill`).forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        config[configKey] = btn.getAttribute(attrName);
+                        renderTable();
+                    });
+                });
+            }
+
+            bindOptionGroup('ruleset-group', 'data-rule', 'ruleset');
+            bindOptionGroup('mode-group', 'data-mode', 'mode');
+            bindOptionGroup('ai-group', 'data-ai', 'aiDifficulty');
+            bindOptionGroup('felt-group', 'data-felt', 'felt');
+
+            btnStartMatch.addEventListener('click', startNewMatch);
+            btnPlayAgain.addEventListener('click', startNewMatch);
+
+            btnOpenMenu.addEventListener('click', () => {
+                menuOverlay.classList.remove('hidden');
+            });
+            btnResumeMatch.addEventListener('click', () => {
+                menuOverlay.classList.add('hidden');
+            });
+            btnWinMenu.addEventListener('click', () => {
+                gameoverOverlay.classList.add('hidden');
+                menuOverlay.classList.remove('hidden');
+            });
+
+            btnSound.addEventListener('click', () => {
+                sfx.muted = !sfx.muted;
+                iconSound.className = sfx.muted
+                    ? 'fa-solid fa-volume-xmark text-xs text-slate-500'
+                    : 'fa-solid fa-volume-high text-xs text-amber-400';
+            });
+
+            window.addEventListener('resize', resizeTable);
+
+            window.onload = function () {
+                setupRack();
+                updateHUD();
+                resizeTable();
+                requestAnimationFrame(gameLoop);
+            };
+        })();
+    </script>
+</body>
+</html>
