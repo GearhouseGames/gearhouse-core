@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Connect 4 Arcade</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Orbitron:wght@600;800;900&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #060913;
+            --p1-color: #f43f5e;
+            --p1-glow: rgba(244, 63, 94, 0.55);
+            --p2-color: #facc15;
+            --p2-glow: rgba(250, 204, 21, 0.55);
+            --board-blue: #1e3a8a;
+            --board-cyan: #06b6d4;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            background-image:
+                radial-gradient(circle at 18% 20%, rgba(244, 63, 94, 0.12) 0%, transparent 50%),
+                radial-gradient(circle at 82% 80%, rgba(250, 204, 21, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(30, 58, 138, 0.18) 0%, transparent 65%);
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .font-arcade {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+
+        .font-led {
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* Arcade Buttons */
+        .btn-arcade {
+            position: relative;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-arcade:active {
+            transform: translateY(2px) scale(0.96);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+            box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+            color: #030914;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+            box-shadow: 0 6px 25px -2px rgba(6, 182, 212, 0.75);
+        }
+
+        .btn-slate {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+        }
+        .btn-slate:hover {
+            border-color: #64748b;
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+        }
+
+        /* Settings Option Pill */
+        .option-pill {
+            transition: all 0.18s ease;
+            border: 2px solid #1e293b;
+            background: rgba(15, 23, 42, 0.8);
+        }
+        .option-pill:hover {
+            border-color: #334155;
+        }
+        .option-pill.selected {
+            border-color: #06b6d4;
+            background: rgba(6, 182, 212, 0.16);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
+            color: #ffffff;
+        }
+
+        /* Player Score Cards */
+        .player-card {
+            transition: all 0.25s ease;
+            border: 2px solid #1e293b;
+            background: rgba(15, 23, 42, 0.75);
+        }
+        .player-card.active-p1 {
+            border-color: #f43f5e;
+            background: rgba(244, 63, 94, 0.14);
+            box-shadow: 0 0 22px rgba(244, 63, 94, 0.35);
+        }
+        .player-card.active-p2 {
+            border-color: #facc15;
+            background: rgba(250, 204, 21, 0.14);
+            box-shadow: 0 0 22px rgba(250, 204, 21, 0.35);
+        }
+
+        /* Canvas Container Glow */
+        #board-frame {
+            box-shadow:
+                0 20px 50px rgba(0, 0, 0, 0.9),
+                0 0 30px rgba(37, 99, 235, 0.25);
+            border: 2px solid #1e3a8a;
+            background-color: #070c1a;
+        }
+
+        .ctrl-pad-btn:active {
+            background-color: rgba(6, 182, 212, 0.35) !important;
+            transform: scale(0.93);
+        }
+    </style>
+</head>
+<body class="text-slate-100 h-screen w-screen flex flex-col items-center justify-between p-1.5 sm:p-3 select-none overflow-hidden">
+
+    <!-- ================= TOP SCOREBOARD & TURN HUD ================= -->
+    <header class="w-full max-w-4xl bg-slate-900/90 backdrop-blur-md border border-slate-800/90 rounded-2xl px-2.5 sm:px-5 py-2 shadow-xl z-20 shrink-0">
+        <div class="flex items-center justify-between gap-2">
+            
+            <!-- Left: Player 1 Card (Crimson Neon) -->
+            <div id="card-p1" class="player-card active-p1 rounded-xl px-2.5 sm:px-4 py-1.5 flex items-center space-x-2.5 min-w-[115px] sm:min-w-[175px]">
+                <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-rose-400 to-rose-600 shadow-[0_0_12px_#f43f5e] border-2 border-rose-200 shrink-0"></div>
+                <div class="leading-tight">
+                    <p id="label-p1" class="font-arcade font-bold text-[11px] sm:text-sm text-white truncate">PLAYER 1</p>
+                    <p class="text-[10px] text-rose-300 font-semibold">Wins: <strong id="score-p1" class="font-led text-xs sm:text-sm text-white">0</strong></p>
+                </div>
+            </div>
+
+            <!-- Center: Brand Title, Mode Badge & Tie Counter -->
+            <div class="flex flex-col items-center text-center px-1">
+                <div class="flex items-center space-x-1.5">
+                    <h1 class="font-arcade font-bold text-sm sm:text-xl tracking-wider text-white leading-none">
+                        CONNECT <span id="brand-target-num" class="text-cyan-400">4</span>
+                    </h1>
+                    <span id="badge-mode" class="text-[9px] sm:text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/60">1P vs AI</span>
+                </div>
+                <div class="flex items-center space-x-2 mt-1">
+                    <span id="turn-status-text" class="text-[10px] sm:text-xs font-bold text-rose-400 tracking-wide uppercase">
+                        Player 1's Turn
+                    </span>
+                    <span class="text-slate-600">•</span>
+                    <span class="text-[10px] text-slate-400 font-semibold">Ties: <strong id="score-ties" class="text-slate-200">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Right: Player 2 / AI Card (Solar Gold) -->
+            <div id="card-p2" class="player-card rounded-xl px-2.5 sm:px-4 py-1.5 flex items-center justify-end space-x-2.5 min-w-[115px] sm:min-w-[175px]">
+                <div class="leading-tight text-right">
+                    <p id="label-p2" class="font-arcade font-bold text-[11px] sm:text-sm text-white truncate">CPU (MED)</p>
+                    <p class="text-[10px] text-amber-300 font-semibold">Wins: <strong id="score-p2" class="font-led text-xs sm:text-sm text-white">0</strong></p>
+                </div>
+                <div class="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-yellow-300 to-amber-500 shadow-[0_0_12px_#facc15] border-2 border-fef08a shrink-0"></div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- ================= MAIN GAME BOARD WORKSPACE ================= -->
+    <main id="workspace" class="relative flex-1 w-full max-w-4xl flex items-center justify-center my-1 overflow-hidden min-h-0 px-1">
+        <div id="board-frame" class="relative rounded-2xl overflow-hidden flex items-center justify-center">
+            <canvas id="c4-canvas" class="block cursor-pointer"></canvas>
+
+            <!-- AI Thinking Pill Indicator -->
+            <div id="ai-thinking-badge" class="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none z-20 hidden">
+                <div class="bg-slate-950/90 border border-amber-400/60 px-4 py-1 rounded-full shadow-lg flex items-center space-x-2">
+                    <i class="fa-solid fa-microchip text-amber-400 text-xs animate-pulse"></i>
+                    <span class="font-arcade font-bold text-xs text-amber-300 tracking-wider uppercase">AI Calculating...</span>
+                </div>
+            </div>
+
+            <!-- 1. SETTINGS & MODE SETUP MODAL -->
+            <div id="settings-modal" class="absolute inset-0 bg-slate-950/94 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 z-30 hidden overflow-y-auto">
+                <div class="w-full max-w-md my-auto space-y-4">
+                    <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-sliders text-cyan-400 text-lg"></i>
+                            <h2 class="font-arcade font-bold text-xl text-white tracking-wide">GAME SETTINGS</h2>
+                        </div>
+                        <button id="btn-close-settings" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Match Mode -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            <i class="fa-solid fa-users text-cyan-400 mr-1"></i> 1. Match Mode
+                        </label>
+                        <div class="grid grid-cols-2 gap-2.5" id="opt-mode-group">
+                            <button type="button" data-mode="1p" class="option-pill selected rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white"><i class="fa-solid fa-robot text-cyan-400 mr-1"></i>1P vs AI</span>
+                                <span class="text-[10px] text-slate-400">Challenge Smart CPU</span>
+                            </button>
+                            <button type="button" data-mode="2p" class="option-pill rounded-xl p-2.5 text-center flex flex-col items-center">
+                                <span class="font-arcade font-bold text-xs sm:text-sm text-white"><i class="fa-solid fa-user-group text-rose-400 mr-1"></i>2P PASS & PLAY</span>
+                                <span class="text-[10px] text-slate-400">Local Multiplayer</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- AI Difficulty -->
+                    <div id="ai-diff-section">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            <i class="fa-solid fa-brain text-amber-400 mr-1"></i> 2. AI Difficulty (1P Mode)
+                        </label>
+                        <div class="grid grid-cols-3 gap-2" id="opt-ai-group">
+                            <button type="button" data-ai="easy" class="option-pill rounded-xl py-2 px-2 text-center">
+                                <span class="font-arcade font-bold text-xs block text-white">EASY</span>
+                                <span class="text-[9px] text-slate-400">Casual</span>
+                            </button>
+                            <button type="button" data-ai="medium" class="option-pill selected rounded-xl py-2 px-2 text-center">
+                                <span class="font-arcade font-bold text-xs block text-white">MEDIUM</span>
+                                <span class="text-[9px] text-slate-400">Tactical</span>
+                            </button>
+                            <button type="button" data-ai="hard" class="option-pill rounded-xl py-2 px-2 text-center">
+                                <span class="font-arcade font-bold text-xs block text-rose-400">GRANDMASTER</span>
+                                <span class="text-[9px] text-slate-400">Deep Minimax</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Board Size & Connect Target -->
+                    <div>
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                            <i class="fa-solid fa-table-cells text-emerald-400 mr-1"></i> 3. Board Size & Ruleset
+                        </label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="opt-board-group">
+                            <button type="button" data-board="mini" class="option-pill rounded-xl py-2 px-1.5 text-center">
+                                <span class="font-arcade font-bold text-xs block text-white">MINI</span>
+                                <span class="text-[9px] text-slate-400">6×5 (Connect 4)</span>
+                            </button>
+                            <button type="button" data-board="classic" class="option-pill selected rounded-xl py-2 px-1.5 text-center">
+                                <span class="font-arcade font-bold text-xs block text-white">CLASSIC</span>
+                                <span class="text-[9px] text-slate-400">7×6 (Connect 4)</span>
+                            </button>
+                            <button type="button" data-board="giant" class="option-pill rounded-xl py-2 px-1.5 text-center">
+                                <span class="font-arcade font-bold text-xs block text-white">GIANT</span>
+                                <span class="text-[9px] text-slate-400">8×7 (Connect 4)</span>
+                            </button>
+                            <button type="button" data-board="connect5" class="option-pill rounded-xl py-2 px-1.5 text-center">
+                                <span class="font-arcade font-bold text-xs block text-cyan-400">CONNECT 5</span>
+                                <span class="text-[9px] text-slate-400">9×7 (5-in-a-Row)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Who Goes First & Reset Scores -->
+                    <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-xl p-3">
+                        <div>
+                            <p class="text-xs font-bold text-white">Scoreboard Statistics</p>
+                            <p class="text-[10px] text-slate-400">Clear saved win/tie records in browser</p>
+                        </div>
+                        <button id="btn-reset-scores" type="button" class="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 text-xs font-bold transition">
+                            <i class="fa-solid fa-trash-can mr-1"></i>Reset Scores
+                        </button>
+                    </div>
+
+                    <button id="btn-apply-settings" class="btn-arcade btn-primary w-full font-arcade font-bold text-base py-3 rounded-xl flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-check"></i>
+                        <span>SAVE & START NEW GAME</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. VICTORY / DRAW OVERLAY BANNER -->
+            <div id="gameover-modal" class="absolute inset-x-4 bottom-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 bg-slate-950/92 backdrop-blur-md border-2 border-cyan-400/80 rounded-2xl p-5 text-center z-30 shadow-2xl max-w-sm w-auto sm:w-full hidden">
+                <div id="win-badge-icon" class="w-12 h-12 mx-auto mb-2 rounded-2xl bg-rose-500/20 border border-rose-400/50 flex items-center justify-center text-rose-400 text-2xl shadow-lg">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 id="win-modal-title" class="font-arcade font-bold text-2xl sm:text-3xl text-white tracking-wider mb-0.5">
+                    PLAYER 1 WINS!
+                </h2>
+                <p id="win-modal-sub" class="text-xs text-slate-300 mb-4">
+                    Connected 4 in a row!
+                </p>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <button id="btn-play-again" class="btn-arcade btn-primary font-arcade font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>PLAY AGAIN</span>
+                    </button>
+                    <button id="btn-inspect-board" class="btn-arcade btn-slate text-slate-200 font-arcade font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>VIEW BOARD</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= BOTTOM CONTROLS BAR (PC, Laptop & Mobile Friendly) ================= -->
+    <footer class="w-full max-w-4xl bg-slate-900/90 backdrop-blur-md border border-slate-800/90 rounded-2xl px-3 sm:px-5 py-2 shadow-xl z-20 shrink-0">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            
+            <!-- Left: Tactile Column Stepper & Drop Buttons (Great for Mobile & Keyboard-Style Precision) -->
+            <div class="flex items-center space-x-1.5">
+                <button id="btn-col-left" type="button" title="Move Column Left (Left Arrow / A)" class="ctrl-pad-btn w-10 h-9 sm:w-11 sm:h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 flex items-center justify-center transition">
+                    <i class="fa-solid fa-chevron-left text-xs sm:text-sm"></i>
+                </button>
+                <button id="btn-col-drop" type="button" title="Drop Disc in Selected Column (Space / Enter / Down)" class="btn-arcade btn-primary font-arcade font-bold text-xs sm:text-sm px-3.5 sm:px-5 h-9 sm:h-10 rounded-xl flex items-center space-x-1.5">
+                    <i class="fa-solid fa-arrow-down text-xs"></i>
+                    <span>DROP DISC</span>
+                </button>
+                <button id="btn-col-right" type="button" title="Move Column Right (Right Arrow / D)" class="ctrl-pad-btn w-10 h-9 sm:w-11 sm:h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 flex items-center justify-center transition">
+                    <i class="fa-solid fa-chevron-right text-xs sm:text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Center Hint (Desktop / Laptop) -->
+            <div class="hidden md:flex items-center text-[11px] text-slate-400 space-x-2">
+                <span><i class="fa-solid fa-hand-pointer text-cyan-400 mr-1"></i>Tap/Drag column or use <strong class="text-slate-200">◄ ► / Space / 1-9</strong></span>
+            </div>
+
+            <!-- Right: Undo, Hint, New Game, Settings & Sound -->
+            <div class="flex items-center space-x-1.5">
+                <button id="btn-undo" type="button" disabled title="Undo Last Move (Z)" class="btn-arcade btn-slate disabled:opacity-40 disabled:pointer-events-none text-slate-200 font-semibold text-xs px-2.5 sm:px-3 h-9 sm:h-10 rounded-xl flex items-center space-x-1">
+                    <i class="fa-solid fa-rotate-left text-amber-400"></i>
+                    <span class="hidden sm:inline">Undo</span>
+                </button>
+
+                <button id="btn-hint" type="button" title="Ask AI for Best Column Suggestion (H)" class="btn-arcade btn-slate text-slate-200 font-semibold text-xs px-2.5 sm:px-3 h-9 sm:h-10 rounded-xl flex items-center space-x-1">
+                    <i class="fa-solid fa-lightbulb text-sky-400"></i>
+                    <span class="hidden sm:inline">Hint</span>
+                </button>
+
+                <button id="btn-restart" type="button" title="Quick Restart Board (R)" class="btn-arcade btn-slate text-slate-200 font-semibold text-xs px-2.5 sm:px-3 h-9 sm:h-10 rounded-xl flex items-center space-x-1">
+                    <i class="fa-solid fa-arrows-rotate text-emerald-400"></i>
+                    <span class="hidden sm:inline">New</span>
+                </button>
+
+                <button id="btn-settings" type="button" title="Game Mode & Board Settings" class="btn-arcade btn-slate text-slate-200 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center">
+                    <i class="fa-solid fa-sliders text-cyan-400 text-xs sm:text-sm"></i>
+                </button>
+
+                <button id="btn-sound" type="button" title="Toggle Audio" class="btn-arcade btn-slate text-cyan-400 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center">
+                    <i id="icon-sound" class="fa-solid fa-volume-high text-xs sm:text-sm"></i>
+                </button>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- ================= CONNECT 4 ENGINE, PHYSICS & MINIMAX AI SCRIPT ================= -->
+    <script>
+        (function () {
+            "use strict";
+
+            // ============================================================================
+            // 1. PROCEDURAL WEB AUDIO API SOUND ENGINE
+            // ============================================================================
+            class Connect4Audio {
+                constructor() {
+                    this.ctx = null;
+                    this.muted = false;
+                }
+
+                init() {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                }
+
+                playTone(freq, type, duration, vol = 0.14, endFreq = null) {
+                    if (this.muted) return;
+                    try {
+                        this.init();
+                        if (!this.ctx) return;
+
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = type;
+                        osc.frequency.setValueAtTime(freq, now);
+                        if (endFreq !== null) {
+                            osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+                        }
+
+                        gain.gain.setValueAtTime(vol, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + duration);
+                    } catch (e) {}
+                }
+
+                columnTick() {
+                    this.playTone(540, 'sine', 0.03, 0.06, 620);
+                }
+
+                discRelease() {
+                    this.playTone(360, 'triangle', 0.07, 0.1, 220);
+                }
+
+                // Realistic plastic/acrylic disc clack scaled by bounce intensity
+                discBounce(intensity = 1.0) {
+                    if (this.muted || intensity < 0.08) return;
+                    const baseFreq = 260 + intensity * 140;
+                    this.playTone(baseFreq, 'triangle', 0.055, Math.min(0.24, intensity * 0.2), 110);
+                }
+
+                winFanfare() {
+                    if (this.muted) return;
+                    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+                    notes.forEach((f, idx) => {
+                        setTimeout(() => this.playTone(f, 'triangle', 0.18, 0.16), idx * 80);
+                    });
+                }
+
+                drawGame() {
+                    if (this.muted) return;
+                    this.playTone(300, 'sawtooth', 0.2, 0.12, 180);
+                }
+            }
+
+            const sfx = new Connect4Audio();
+
+            // ============================================================================
+            // 2. BOARD PRESETS & CONFIGURATION
+            // ============================================================================
+            const STORAGE_KEY_SCORES = 'neon_connect4_scores_v1';
+
+            const BOARD_PRESETS = {
+                mini:     { cols: 6, rows: 5, connect: 4, label: 'Mini (6×5)' },
+                classic:  { cols: 7, rows: 6, connect: 4, label: 'Classic (7×6)' },
+                giant:    { cols: 8, rows: 7, connect: 4, label: 'Giant (8×7)' },
+                connect5: { cols: 9, rows: 7, connect: 5, label: 'Connect 5 (9×7)' }
+            };
+
+            let config = {
+                mode: '1p',          // '1p' (vs AI) | '2p' (Pass & Play)
+                aiDifficulty: 'medium', // 'easy' | 'medium' | 'hard'
+                boardPreset: 'classic',
+                cols: 7,
+                rows: 6,
+                connectN: 4
+            };
+
+            let scores = {
+                p1: 0,
+                p2: 0,
+                ties: 0
+            };
+
+            let state = {
+                status: 'PLAYING',   // 'PLAYING' | 'DROPPING' | 'AI_THINKING' | 'GAMEOVER'
+                turn: 1,             // 1 (Crimson) or 2 (Gold)
+                selectedCol: 3,      // Currently hovered/selected column
+                hintCol: null,       // Highlighted column from Hint button
+                grid: [],            // 2D array [row][col] (0 = empty, 1 = P1, 2 = P2; row 0 is top)
+                moveHistory: [],     // Array of { r, c, player } for Undo
+                fallingDisc: null,   // Active animated dropping disc { r, c, player, y, vy, targetY, bounces }
+                winningCells: [],    // Array of { r, c } forming the winning line
+                winAnimProgress: 0,
+                particles: []
+            };
+
+            // ============================================================================
+            // 3. DOM ELEMENTS
+            // ============================================================================
+            const canvas = document.getElementById('c4-canvas');
+            const ctx = canvas.getContext('2d');
+            const workspace = document.getElementById('workspace');
+            const boardFrame = document.getElementById('board-frame');
+
+            const cardP1 = document.getElementById('card-p1');
+            const cardP2 = document.getElementById('card-p2');
+            const labelP1 = document.getElementById('label-p1');
+            const labelP2 = document.getElementById('label-p2');
+            const scoreP1El = document.getElementById('score-p1');
+            const scoreP2El = document.getElementById('score-p2');
+            const scoreTiesEl = document.getElementById('score-ties');
+            const brandTargetNum = document.getElementById('brand-target-num');
+            const badgeMode = document.getElementById('badge-mode');
+            const turnStatusText = document.getElementById('turn-status-text');
+            const aiThinkingBadge = document.getElementById('ai-thinking-badge');
+
+            const settingsModal = document.getElementById('settings-modal');
+            const gameoverModal = document.getElementById('gameover-modal');
+            const winBadgeIcon = document.getElementById('win-badge-icon');
+            const winModalTitle = document.getElementById('win-modal-title');
+            const winModalSub = document.getElementById('win-modal-sub');
+
+            const btnColLeft = document.getElementById('btn-col-left');
+            const btnColRight = document.getElementById('btn-col-right');
+            const btnColDrop = document.getElementById('btn-col-drop');
+            const btnUndo = document.getElementById('btn-undo');
+            const btnHint = document.getElementById('btn-hint');
+            const btnRestart = document.getElementById('btn-restart');
+            const btnSettings = document.getElementById('btn-settings');
+            const btnCloseSettings = document.getElementById('btn-close-settings');
+            const btnApplySettings = document.getElementById('btn-apply-settings');
+            const btnResetScores = document.getElementById('btn-reset-scores');
+            const btnPlayAgain = document.getElementById('btn-play-again');
+            const btnInspectBoard = document.getElementById('btn-inspect-board');
+            const btnSound = document.getElementById('btn-sound');
+            const iconSound = document.getElementById('icon-sound');
+
+            // ============================================================================
+            // 4. INITIALIZATION, SCORES & RESPONSIVE SIZING
+            // ============================================================================
+            let metrics = {
+                cellSize: 70,
+                padX: 20,
+                headerH: 76,
+                padBottom: 20,
+                discRadius: 28
+            };
+
+            function loadScores() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY_SCORES);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        scores.p1 = parsed.p1 || 0;
+                        scores.p2 = parsed.p2 || 0;
+                        scores.ties = parsed.ties || 0;
+                    }
+                } catch (e) {}
+                updateScoreHUD();
+            }
+
+            function saveScores() {
+                try {
+                    localStorage.setItem(STORAGE_KEY_SCORES, JSON.stringify(scores));
+                } catch (e) {}
+                updateScoreHUD();
+            }
+
+            function updateScoreHUD() {
+                scoreP1El.textContent = scores.p1;
+                scoreP2El.textContent = scores.p2;
+                scoreTiesEl.textContent = scores.ties;
+            }
+
+            function initNewGame() {
+                const preset = BOARD_PRESETS[config.boardPreset];
+                config.cols = preset.cols;
+                config.rows = preset.rows;
+                config.connectN = preset.connect;
+
+                state.grid = Array.from({ length: config.rows }, () => Array(config.cols).fill(0));
+                state.moveHistory = [];
+                state.fallingDisc = null;
+                state.winningCells = [];
+                state.winAnimProgress = 0;
+                state.particles = [];
+                state.turn = 1;
+                state.selectedCol = Math.floor(config.cols / 2);
+                state.hintCol = null;
+                state.status = 'PLAYING';
+
+                gameoverModal.classList.add('hidden');
+                aiThinkingBadge.classList.add('hidden');
+
+                syncHeaderHUD();
+                resizeBoard();
+            }
+
+            function syncHeaderHUD() {
+                brandTargetNum.textContent = config.connectN;
+                const aiLabels = { easy: 'EASY', medium: 'MED', hard: 'PRO' };
+                badgeMode.textContent = config.mode === '1p' ? `1P vs AI (${aiLabels[config.aiDifficulty]})` : '2P LOCAL';
+
+                labelP1.textContent = 'PLAYER 1';
+                labelP2.textContent = config.mode === '1p' ? `CPU (${aiLabels[config.aiDifficulty]})` : 'PLAYER 2';
+
+                cardP1.classList.toggle('active-p1', state.turn === 1 && state.status !== 'GAMEOVER');
+                cardP2.classList.toggle('active-p2', state.turn === 2 && state.status !== 'GAMEOVER');
+
+                if (state.status === 'GAMEOVER') {
+                    turnStatusText.textContent = 'Match Complete';
+                    turnStatusText.className = 'text-[10px] sm:text-xs font-bold text-cyan-400 tracking-wide uppercase';
+                } else if (state.turn === 1) {
+                    turnStatusText.textContent = "Player 1's Turn";
+                    turnStatusText.className = 'text-[10px] sm:text-xs font-bold text-rose-400 tracking-wide uppercase';
+                } else {
+                    turnStatusText.textContent = config.mode === '1p' ? "CPU's Turn" : "Player 2's Turn";
+                    turnStatusText.className = 'text-[10px] sm:text-xs font-bold text-amber-400 tracking-wide uppercase';
+                }
+
+                btnUndo.disabled = state.moveHistory.length === 0 || state.status === 'DROPPING' || state.status === 'AI_THINKING';
+            }
+
+            function resizeBoard() {
+                const availW = workspace.clientWidth - 12;
+                const availH = workspace.clientHeight - 12;
+
+                // Calculate optimal cell size so cols x (rows + 1.15 preview row) fits cleanly
+                const maxCellW = Math.floor((availW - 28) / config.cols);
+                const maxCellH = Math.floor((availH - 28) / (config.rows + 1.12));
+                const cellSize = Math.max(36, Math.min(82, maxCellW, maxCellH));
+
+                metrics.cellSize = cellSize;
+                metrics.padX = Math.round(cellSize * 0.22);
+                metrics.headerH = Math.round(cellSize * 1.05);
+                metrics.padBottom = Math.round(cellSize * 0.24);
+                metrics.discRadius = Math.round(cellSize * 0.41);
+
+                const totalW = config.cols * cellSize + metrics.padX * 2;
+                const totalH = config.rows * cellSize + metrics.headerH + metrics.padBottom;
+
+                canvas.width = totalW;
+                canvas.height = totalH;
+                boardFrame.style.width = `${totalW}px`;
+                boardFrame.style.height = `${totalH}px`;
+
+                renderScene();
+            }
+
+            function getCellCenter(r, c) {
+                return {
+                    x: metrics.padX + (c + 0.5) * metrics.cellSize,
+                    y: metrics.headerH + (r + 0.5) * metrics.cellSize
+                };
+            }
+
+            // ============================================================================
+            // 5. CORE GAMEPLAY: DROPPING DISCS, BOUNCE PHYSICS & WIN DETECTION
+            // ============================================================================
+            function getAvailableRow(grid, col) {
+                for (let r = config.rows - 1; r >= 0; r--) {
+                    if (grid[r][col] === 0) return r;
+                }
+                return -1;
+            }
+
+            function attemptDropInColumn(col) {
+                if (state.status !== 'PLAYING') return false;
+                if (config.mode === '1p' && state.turn === 2) return false;
+                return startDiscDrop(col, state.turn);
+            }
+
+            function startDiscDrop(col, player) {
+                if (col < 0 || col >= config.cols) return false;
+                const targetRow = getAvailableRow(state.grid, col);
+                if (targetRow === -1) return false; // Column is full
+
+                state.selectedCol = col;
+                state.hintCol = null;
+                state.status = 'DROPPING';
+                btnUndo.disabled = true;
+
+                const startPos = {
+                    x: metrics.padX + (col + 0.5) * metrics.cellSize,
+                    y: metrics.headerH * 0.5
+                };
+                const targetPos = getCellCenter(targetRow, col);
+
+                state.fallingDisc = {
+                    r: targetRow,
+                    c: col,
+                    player,
+                    x: startPos.x,
+                    y: startPos.y,
+                    vy: 0,
+                    targetY: targetPos.y,
+                    bounces: 0
+                };
+
+                sfx.discRelease();
+                return true;
+            }
+
+            function updatePhysics(dt) {
+                // Update celebratory particles
+                for (let i = state.particles.length - 1; i >= 0; i--) {
+                    const p = state.particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.vy += 320 * dt;
+                    p.alpha -= dt * 1.1;
+                    if (p.alpha <= 0) state.particles.splice(i, 1);
+                }
+
+                if (state.winningCells.length > 0 && state.winAnimProgress < 1) {
+                    state.winAnimProgress = Math.min(1, state.winAnimProgress + dt * 2.8);
+                }
+
+                if (state.status !== 'DROPPING' || !state.fallingDisc) return;
+
+                const fd = state.fallingDisc;
+                const gravity = 2850;
+                fd.vy += gravity * dt;
+                fd.y += fd.vy * dt;
+
+                if (fd.y >= fd.targetY) {
+                    fd.y = fd.targetY;
+                    fd.bounces++;
+
+                    const impactIntensity = Math.min(1, Math.abs(fd.vy) / 950);
+                    sfx.discBounce(impactIntensity);
+
+                    // Realistic damped bounce
+                    if (fd.bounces <= 2 && Math.abs(fd.vy) > 190) {
+                        fd.vy = -fd.vy * 0.33;
+                    } else {
+                        // Settle disc into grid
+                        state.grid[fd.r][fd.c] = fd.player;
+                        state.moveHistory.push({ r: fd.r, c: fd.c, player: fd.player });
+                        state.fallingDisc = null;
+                        onDiscLanded(fd.r, fd.c, fd.player);
+                    }
+                }
+            }
+
+            function onDiscLanded(r, c, player) {
+                // 1. Check if this move created a Connect N win
+                const winLine = findWinningLine(state.grid, player);
+                if (winLine) {
+                    state.status = 'GAMEOVER';
+                    state.winningCells = winLine;
+                    state.winAnimProgress = 0;
+
+                    if (player === 1) scores.p1++;
+                    else scores.p2++;
+                    saveScores();
+                    syncHeaderHUD();
+
+                    sfx.winFanfare();
+                    spawnVictorySparks(winLine, player);
+
+                    setTimeout(() => {
+                        showGameOverModal(player, false);
+                    }, 550);
+                    return;
+                }
+
+                // 2. Check for Full Board Draw
+                const isBoardFull = state.grid[0].every(cell => cell !== 0);
+                if (isBoardFull) {
+                    state.status = 'GAMEOVER';
+                    scores.ties++;
+                    saveScores();
+                    syncHeaderHUD();
+                    sfx.drawGame();
+
+                    setTimeout(() => {
+                        showGameOverModal(0, true);
+                    }, 400);
+                    return;
+                }
+
+                // 3. Advance Turn
+                state.turn = state.turn === 1 ? 2 : 1;
+                syncHeaderHUD();
+
+                if (config.mode === '1p' && state.turn === 2) {
+                    state.status = 'AI_THINKING';
+                    aiThinkingBadge.classList.remove('hidden');
+                    btnUndo.disabled = true;
+                    setTimeout(() => {
+                        if (state.status !== 'AI_THINKING') return;
+                        const aiCol = computeBestAIMove(state.grid, 2, config.aiDifficulty);
+                        aiThinkingBadge.classList.add('hidden');
+                        startDiscDrop(aiCol, 2);
+                    }, 340);
+                } else {
+                    state.status = 'PLAYING';
+                    syncHeaderHUD();
+                }
+            }
+
+            function findWinningLine(grid, player) {
+                const R = config.rows;
+                const C = config.cols;
+                const N = config.connectN;
+                const directions = [
+                    { dr: 0, dc: 1 },  // Horizontal
+                    { dr: 1, dc: 0 },  // Vertical
+                    { dr: 1, dc: 1 },  // Diagonal Down-Right
+                    { dr: -1, dc: 1 }  // Diagonal Up-Right
+                ];
+
+                for (let r = 0; r < R; r++) {
+                    for (let c = 0; c < C; c++) {
+                        if (grid[r][c] !== player) continue;
+
+                        for (const { dr, dc } of directions) {
+                            const endR = r + (N - 1) * dr;
+                            const endC = c + (N - 1) * dc;
+                            if (endR < 0 || endR >= R || endC < 0 || endC >= C) continue;
+
+                            const line = [{ r, c }];
+                            for (let k = 1; k < N; k++) {
+                                if (grid[r + k * dr][c + k * dc] === player) {
+                                    line.push({ r: r + k * dr, c: c + k * dc });
+                                } else {
+                                    break;
+                                }
+                            }
+                            if (line.length === N) return line;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            function spawnVictorySparks(winLine, player) {
+                const color = player === 1 ? '#f43f5e' : '#facc15';
+                winLine.forEach(cell => {
+                    const pt = getCellCenter(cell.r, cell.c);
+                    for (let i = 0; i < 16; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = 60 + Math.random() * 220;
+                        state.particles.push({
+                            x: pt.x,
+                            y: pt.y,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed - 60,
+                            size: 2.5 + Math.random() * 3.5,
+                            alpha: 1,
+                            color
+                        });
+                    }
+                });
+            }
+
+            function showGameOverModal(winnerPlayer, isDraw) {
+                if (isDraw) {
+                    winBadgeIcon.className = 'w-12 h-12 mx-auto mb-2 rounded-2xl bg-slate-700/40 border border-slate-500 flex items-center justify-center text-slate-200 text-2xl shadow-lg';
+                    winBadgeIcon.innerHTML = `<i class="fa-solid fa-handshake"></i>`;
+                    winModalTitle.textContent = "IT'S A DRAW!";
+                    winModalTitle.className = 'font-arcade font-bold text-2xl sm:text-3xl text-white tracking-wider mb-0.5';
+                    winModalSub.textContent = 'Every column on the grid is completely full.';
+                } else if (winnerPlayer === 1) {
+                    winBadgeIcon.className = 'w-12 h-12 mx-auto mb-2 rounded-2xl bg-rose-500/20 border border-rose-400/50 flex items-center justify-center text-rose-400 text-2xl shadow-lg';
+                    winBadgeIcon.innerHTML = `<i class="fa-solid fa-trophy"></i>`;
+                    winModalTitle.textContent = config.mode === '1p' ? 'YOU WIN!' : 'PLAYER 1 WINS!';
+                    winModalTitle.className = 'font-arcade font-bold text-2xl sm:text-3xl text-rose-400 tracking-wider mb-0.5';
+                    winModalSub.textContent = `Connected ${config.connectN} crimson discs in a row!`;
+                } else {
+                    winBadgeIcon.className = 'w-12 h-12 mx-auto mb-2 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400 text-2xl shadow-lg';
+                    winBadgeIcon.innerHTML = `<i class="fa-solid fa-trophy"></i>`;
+                    winModalTitle.textContent = config.mode === '1p' ? 'CPU WINS!' : 'PLAYER 2 WINS!';
+                    winModalTitle.className = 'font-arcade font-bold text-2xl sm:text-3xl text-amber-400 tracking-wider mb-0.5';
+                    winModalSub.textContent = `Connected ${config.connectN} gold discs in a row!`;
+                }
+
+                gameoverModal.classList.remove('hidden');
+            }
+
+            // ============================================================================
+            // 6. MINIMAX AI ENGINE WITH ALPHA-BETA PRUNING & HEURISTIC EVALUATION
+            // ============================================================================
+            function getValidColumns(grid) {
+                const cols = [];
+                const center = Math.floor(config.cols / 2);
+                // Order columns from center outward for faster Alpha-Beta pruning
+                for (let c = 0; c < config.cols; c++) {
+                    if (grid[0][c] === 0) cols.push(c);
+                }
+                cols.sort((a, b) => Math.abs(a - center) - Math.abs(b - center));
+                return cols;
+            }
+
+            function scoreWindow(windowArr, aiPlayer, humanPlayer) {
+                const N = config.connectN;
+                let aiCount = 0;
+                let humanCount = 0;
+                let emptyCount = 0;
+
+                for (let i = 0; i < N; i++) {
+                    if (windowArr[i] === aiPlayer) aiCount++;
+                    else if (windowArr[i] === humanPlayer) humanCount++;
+                    else emptyCount++;
+                }
+
+                if (aiCount > 0 && humanCount > 0) return 0; // Blocked window
+
+                if (aiCount === N) return 100000;
+                if (humanCount === N) return -100000;
+                if (aiCount === N - 1 && emptyCount === 1) return 140;
+                if (humanCount === N - 1 && emptyCount === 1) return -160;
+                if (aiCount === N - 2 && emptyCount === 2) return 18;
+                if (humanCount === N - 2 && emptyCount === 2) return -20;
+
+                return 0;
+            }
+
+            function evaluateBoardPosition(grid, aiPlayer) {
+                const humanPlayer = aiPlayer === 1 ? 2 : 1;
+                const R = config.rows;
+                const C = config.cols;
+                const N = config.connectN;
+                let score = 0;
+
+                // 1. Center Column Control Bonus
+                const centerCol = Math.floor(C / 2);
+                for (let r = 0; r < R; r++) {
+                    if (grid[r][centerCol] === aiPlayer) score += 8;
+                    else if (grid[r][centerCol] === humanPlayer) score -= 8;
+                }
+
+                const winBuf = new Array(N);
+
+                // 2. Horizontal Windows
+                for (let r = 0; r < R; r++) {
+                    for (let c = 0; c <= C - N; c++) {
+                        for (let k = 0; k < N; k++) winBuf[k] = grid[r][c + k];
+                        score += scoreWindow(winBuf, aiPlayer, humanPlayer);
+                    }
+                }
+
+                // 3. Vertical Windows
+                for (let c = 0; c < C; c++) {
+                    for (let r = 0; r <= R - N; r++) {
+                        for (let k = 0; k < N; k++) winBuf[k] = grid[r + k][c];
+                        score += scoreWindow(winBuf, aiPlayer, humanPlayer);
+                    }
+                }
+
+                // 4. Positive & Negative Diagonal Windows
+                for (let r = 0; r <= R - N; r++) {
+                    for (let c = 0; c <= C - N; c++) {
+                        for (let k = 0; k < N; k++) winBuf[k] = grid[r + k][c + k];
+                        score += scoreWindow(winBuf, aiPlayer, humanPlayer);
+
+                        for (let k = 0; k < N; k++) winBuf[k] = grid[r + (N - 1 - k)][c + k];
+                        score += scoreWindow(winBuf, aiPlayer, humanPlayer);
+                    }
+                }
+
+                return score;
+            }
+
+            function minimax(grid, depth, alpha, beta, maximizingPlayer, aiPlayer) {
+                const humanPlayer = aiPlayer === 1 ? 2 : 1;
+
+                if (findWinningLine(grid, aiPlayer)) return { col: -1, score: 1000000 + depth * 100 };
+                if (findWinningLine(grid, humanPlayer)) return { col: -1, score: -1000000 - depth * 100 };
+
+                const validCols = getValidColumns(grid);
+                if (validCols.length === 0) return { col: -1, score: 0 };
+                if (depth === 0) return { col: -1, score: evaluateBoardPosition(grid, aiPlayer) };
+
+                if (maximizingPlayer) {
+                    let maxEval = -Infinity;
+                    let bestCol = validCols[0];
+
+                    for (const col of validCols) {
+                        const row = getAvailableRow(grid, col);
+                        grid[row][col] = aiPlayer;
+                        const result = minimax(grid, depth - 1, alpha, beta, false, aiPlayer);
+                        grid[row][col] = 0;
+
+                        if (result.score > maxEval) {
+                            maxEval = result.score;
+                            bestCol = col;
+                        }
+                        alpha = Math.max(alpha, maxEval);
+                        if (alpha >= beta) break;
+                    }
+                    return { col: bestCol, score: maxEval };
+                } else {
+                    let minEval = Infinity;
+                    let bestCol = validCols[0];
+
+                    for (const col of validCols) {
+                        const row = getAvailableRow(grid, col);
+                        grid[row][col] = humanPlayer;
+                        const result = minimax(grid, depth - 1, alpha, beta, true, aiPlayer);
+                        grid[row][col] = 0;
+
+                        if (result.score < minEval) {
+                            minEval = result.score;
+                            bestCol = col;
+                        }
+                        beta = Math.min(beta, minEval);
+                        if (alpha >= beta) break;
+                    }
+                    return { col: bestCol, score: minEval };
+                }
+            }
+
+            function computeBestAIMove(grid, player, difficulty) {
+                const validCols = getValidColumns(grid);
+                if (validCols.length === 0) return 0;
+
+                const opponent = player === 1 ? 2 : 1;
+
+                // Always check for immediate 1-move win or immediate 1-move block first!
+                for (const col of validCols) {
+                    const r = getAvailableRow(grid, col);
+                    grid[r][col] = player;
+                    if (findWinningLine(grid, player)) {
+                        grid[r][col] = 0;
+                        return col;
+                    }
+                    grid[r][col] = 0;
+                }
+
+                for (const col of validCols) {
+                    const r = getAvailableRow(grid, col);
+                    grid[r][col] = opponent;
+                    if (findWinningLine(grid, opponent)) {
+                        grid[r][col] = 0;
+                        return col;
+                    }
+                    grid[r][col] = 0;
+                }
+
+                if (difficulty === 'easy') {
+                    // Easy: 55% random valid column, 45% 2-ply search
+                    if (Math.random() < 0.55) {
+                        return validCols[Math.floor(Math.random() * validCols.length)];
+                    }
+                    return minimax(grid, 2, -Infinity, Infinity, true, player).col;
+                }
+
+                if (difficulty === 'medium') {
+                    return minimax(grid, 4, -Infinity, Infinity, true, player).col;
+                }
+
+                // Grandmaster (Hard): 6-ply deep Minimax with Alpha-Beta Pruning (5-ply on 9x7 Connect 5 for instant speed)
+                const searchDepth = config.cols >= 9 ? 5 : 6;
+                return minimax(grid, searchDepth, -Infinity, Infinity, true, player).col;
+            }
+
+            // ============================================================================
+            // 7. CANVAS RENDERING (Hover Preview, Falling Disc, 3D Board Mask & Win Line)
+            // ============================================================================
+            function renderScene() {
+                const W = canvas.width;
+                const H = canvas.height;
+                ctx.clearRect(0, 0, W, H);
+
+                // 1. Background Grid Backing
+                ctx.fillStyle = '#070b17';
+                ctx.fillRect(0, 0, W, H);
+
+                // 2. Active Column Highlight Beam & Ghost Preview Disc
+                if (state.status === 'PLAYING' && !(config.mode === '1p' && state.turn === 2)) {
+                    const colX = metrics.padX + state.selectedCol * metrics.cellSize;
+                    const centerColX = colX + metrics.cellSize / 2;
+
+                    // Vertical column spotlight
+                    const colGrad = ctx.createLinearGradient(0, metrics.headerH, 0, H);
+                    colGrad.addColorStop(0, state.turn === 1 ? 'rgba(244, 63, 94, 0.16)' : 'rgba(250, 204, 21, 0.16)');
+                    colGrad.addColorStop(1, 'rgba(6, 182, 212, 0.04)');
+                    ctx.fillStyle = colGrad;
+                    ctx.fillRect(colX, metrics.headerH, metrics.cellSize, H - metrics.headerH - metrics.padBottom);
+
+                    // Landing slot ghost preview ring inside the column
+                    const targetRow = getAvailableRow(state.grid, state.selectedCol);
+                    if (targetRow !== -1) {
+                        const targetCenter = getCellCenter(targetRow, state.selectedCol);
+                        ctx.save();
+                        ctx.strokeStyle = state.turn === 1 ? 'rgba(244, 63, 94, 0.55)' : 'rgba(250, 204, 21, 0.55)';
+                        ctx.lineWidth = 2.5;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.arc(targetCenter.x, targetCenter.y, metrics.discRadius * 0.88, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
+                    // Floating Preview Disc in Top Header Zone
+                    const floatY = metrics.headerH * 0.52 + Math.sin(performance.now() * 0.006) * 3;
+                    drawGlossyDisc(centerColX, floatY, metrics.discRadius * 0.92, state.turn, false);
+                }
+
+                // Hint Column Indicator (if Hint button was clicked)
+                if (state.hintCol !== null && state.status === 'PLAYING') {
+                    const hx = metrics.padX + (state.hintCol + 0.5) * metrics.cellSize;
+                    ctx.save();
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#38bdf8';
+                    ctx.shadowBlur = 14;
+                    ctx.beginPath();
+                    ctx.arc(hx, metrics.headerH * 0.52, metrics.discRadius + 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 3. Draw Settled Discs & Actively Falling Disc (Drawn BEHIND the Board Front Mask!)
+                for (let r = 0; r < config.rows; r++) {
+                    for (let c = 0; c < config.cols; c++) {
+                        const p = state.grid[r][c];
+                        if (p !== 0) {
+                            const pt = getCellCenter(r, c);
+                            const isWinCell = state.winningCells.some(w => w.r === r && w.c === c);
+                            drawGlossyDisc(pt.x, pt.y, metrics.discRadius, p, isWinCell);
+                        }
+                    }
+                }
+
+                if (state.fallingDisc) {
+                    const fd = state.fallingDisc;
+                    drawGlossyDisc(fd.x, fd.y, metrics.discRadius, fd.player, false);
+                }
+
+                // 4. Draw Connect 4 Front Board Plate with Circular Cutout Holes (Even-Odd Winding Rule)
+                const boardTop = metrics.headerH;
+                const boardW = W - metrics.padX * 2;
+                const boardH = config.rows * metrics.cellSize;
+
+                ctx.save();
+                ctx.beginPath();
+                // Outer rounded rectangle of the Connect 4 rack
+                drawRoundedRectPath(ctx, metrics.padX, boardTop, boardW, boardH, 16);
+
+                // Punch circular holes for every grid cell
+                for (let r = 0; r < config.rows; r++) {
+                    for (let c = 0; c < config.cols; c++) {
+                        const pt = getCellCenter(r, c);
+                        ctx.moveTo(pt.x + metrics.discRadius, pt.y);
+                        ctx.arc(pt.x, pt.y, metrics.discRadius, 0, Math.PI * 2, true);
+                    }
+                }
+
+                const boardGrad = ctx.createLinearGradient(0, boardTop, 0, boardTop + boardH);
+                boardGrad.addColorStop(0, '#1d4ed8');
+                boardGrad.addColorStop(0.5, '#1e3a8a');
+                boardGrad.addColorStop(1, '#172554');
+                ctx.fillStyle = boardGrad;
+                ctx.fill('evenodd');
+
+                // Crisp 3D Inner Hole Bevel Rings & Column Number Labels
+                for (let r = 0; r < config.rows; r++) {
+                    for (let c = 0; c < config.cols; c++) {
+                        const pt = getCellCenter(r, c);
+                        ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, metrics.discRadius + 1, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        ctx.strokeStyle = 'rgba(96, 165, 250, 0.28)';
+                        ctx.lineWidth = 1.2;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, metrics.discRadius + 2.5, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+
+                // Subtle Column Number Labels (1..N) along bottom rail
+                ctx.font = '700 10px "Orbitron", sans-serif';
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
+                ctx.textAlign = 'center';
+                for (let c = 0; c < config.cols; c++) {
+                    const cx = metrics.padX + (c + 0.5) * metrics.cellSize;
+                    ctx.fillText(String(c + 1), cx, H - 5);
+                }
+                ctx.restore();
+
+                // 5. Animated Winning Laser Line & Glowing Halo
+                if (state.winningCells.length >= 2) {
+                    const first = getCellCenter(state.winningCells[0].r, state.winningCells[0].c);
+                    const last = getCellCenter(
+                        state.winningCells[state.winningCells.length - 1].r,
+                        state.winningCells[state.winningCells.length - 1].c
+                    );
+
+                    const curX = first.x + (last.x - first.x) * state.winAnimProgress;
+                    const curY = first.y + (last.y - first.y) * state.winAnimProgress;
+
+                    ctx.save();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 6;
+                    ctx.lineCap = 'round';
+                    ctx.shadowColor = '#38bdf8';
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
+                    ctx.moveTo(first.x, first.y);
+                    ctx.lineTo(curX, curY);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // 6. Victory Sparks
+                state.particles.forEach(p => {
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fillStyle = p.color;
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+
+            function drawGlossyDisc(x, y, radius, player, isWinning) {
+                ctx.save();
+                ctx.translate(x, y);
+
+                const isP1 = player === 1;
+                const grad = ctx.createRadialGradient(-radius * 0.3, -radius * 0.3, radius * 0.1, 0, 0, radius);
+                if (isP1) {
+                    grad.addColorStop(0, '#fda4af');
+                    grad.addColorStop(0.35, '#f43f5e');
+                    grad.addColorStop(1, '#9f1239');
+                } else {
+                    grad.addColorStop(0, '#fef08a');
+                    grad.addColorStop(0.35, '#facc15');
+                    grad.addColorStop(1, '#b45309');
+                }
+
+                ctx.fillStyle = grad;
+                if (isWinning) {
+                    ctx.shadowColor = '#ffffff';
+                    ctx.shadowBlur = 18;
+                } else {
+                    ctx.shadowColor = isP1 ? 'rgba(244, 63, 94, 0.5)' : 'rgba(250, 204, 21, 0.5)';
+                    ctx.shadowBlur = 8;
+                }
+
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Concentric ridged token ring
+                ctx.strokeStyle = isP1 ? 'rgba(255, 228, 230, 0.4)' : 'rgba(254, 249, 195, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius * 0.68, 0, Math.PI * 2);
+                ctx.stroke();
+
+                if (isWinning) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, radius * 0.88, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+
+            function drawRoundedRectPath(context, x, y, w, h, r) {
+                context.moveTo(x + r, y);
+                context.lineTo(x + w - r, y);
+                context.quadraticCurveTo(x + w, y, x + w, y + r);
+                context.lineTo(x + w, y + h - r);
+                context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                context.lineTo(x + r, y + h);
+                context.quadraticCurveTo(x, y + h, x, y + h - r);
+                context.lineTo(x, y + r);
+                context.quadraticCurveTo(x, y, x + r, y);
+                context.closePath();
+            }
+
+            // ============================================================================
+            // 8. MAIN ANIMATION LOOP
+            // ============================================================================
+            let lastTime = performance.now();
+            function gameLoop(now) {
+                const dt = Math.min(0.035, (now - lastTime) / 1000);
+                lastTime = now;
+
+                updatePhysics(dt);
+                renderScene();
+                requestAnimationFrame(gameLoop);
+            }
+
+            // ============================================================================
+            // 9. CONTROLS: MOUSE, KEYBOARD (PC/LAPTOP) & TOUCH DRAG-AND-RELEASE (MOBILE)
+            // ============================================================================
+            function getColumnFromClientX(clientX) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const canvasX = (clientX - rect.left) * scaleX;
+                const col = Math.floor((canvasX - metrics.padX) / metrics.cellSize);
+                return Math.max(0, Math.min(config.cols - 1, col));
+            }
+
+            function setSelectedCol(newCol) {
+                const clamped = Math.max(0, Math.min(config.cols - 1, newCol));
+                if (clamped !== state.selectedCol) {
+                    state.selectedCol = clamped;
+                    sfx.columnTick();
+                }
+            }
+
+            // Mouse Hover & Click
+            canvas.addEventListener('mousemove', (e) => {
+                if (state.status !== 'PLAYING') return;
+                setSelectedCol(getColumnFromClientX(e.clientX));
+            });
+
+            canvas.addEventListener('click', (e) => {
+                if (state.status !== 'PLAYING') return;
+                sfx.init();
+                const col = getColumnFromClientX(e.clientX);
+                setSelectedCol(col);
+                attemptDropInColumn(col);
+            });
+
+            // Mobile Touch Slide-to-Preview & Release-to-Drop
+            let touchActiveOnBoard = false;
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length !== 1 || state.status !== 'PLAYING') return;
+                e.preventDefault();
+                sfx.init();
+                touchActiveOnBoard = true;
+                setSelectedCol(getColumnFromClientX(e.touches[0].clientX));
+            }, { passive: false });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!touchActiveOnBoard || e.touches.length !== 1) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                // Cancel drop if user drags finger far outside the board vertically
+                if (touch.clientY < rect.top - 60 || touch.clientY > rect.bottom + 60) {
+                    touchActiveOnBoard = false;
+                    return;
+                }
+                setSelectedCol(getColumnFromClientX(touch.clientX));
+            }, { passive: false });
+
+            canvas.addEventListener('touchend', (e) => {
+                if (!touchActiveOnBoard) return;
+                e.preventDefault();
+                touchActiveOnBoard = false;
+                attemptDropInColumn(state.selectedCol);
+            }, { passive: false });
+
+            // Bottom Stepper Buttons
+            btnColLeft.addEventListener('click', () => {
+                sfx.init();
+                setSelectedCol(state.selectedCol - 1);
+            });
+            btnColRight.addEventListener('click', () => {
+                sfx.init();
+                setSelectedCol(state.selectedCol + 1);
+            });
+            btnColDrop.addEventListener('click', () => {
+                sfx.init();
+                attemptDropInColumn(state.selectedCol);
+            });
+
+            // Undo Move (Reverts 2 plies in 1P vs AI mode so it returns to Player 1's turn!)
+            function performUndo() {
+                if (state.moveHistory.length === 0 || state.status === 'DROPPING' || state.status === 'AI_THINKING') return;
+                sfx.init();
+                sfx.columnTick();
+
+                if (config.mode === '1p' && state.turn === 1 && state.moveHistory.length >= 2) {
+                    const aiMove = state.moveHistory.pop();
+                    state.grid[aiMove.r][aiMove.c] = 0;
+                    const p1Move = state.moveHistory.pop();
+                    state.grid[p1Move.r][p1Move.c] = 0;
+                    state.turn = 1;
+                } else {
+                    const last = state.moveHistory.pop();
+                    state.grid[last.r][last.c] = 0;
+                    state.turn = last.player;
+                }
+
+                state.status = 'PLAYING';
+                state.winningCells = [];
+                gameoverModal.classList.add('hidden');
+                syncHeaderHUD();
+            }
+
+            // Hint Button
+            function triggerSmartHint() {
+                if (state.status !== 'PLAYING') return;
+                sfx.init();
+                sfx.columnTick();
+                const bestCol = computeBestAIMove(state.grid, state.turn, 'hard');
+                state.hintCol = bestCol;
+                state.selectedCol = bestCol;
+            }
+
+            btnUndo.addEventListener('click', performUndo);
+            btnHint.addEventListener('click', triggerSmartHint);
+            btnRestart.addEventListener('click', initNewGame);
+            btnPlayAgain.addEventListener('click', initNewGame);
+            btnInspectBoard.addEventListener('click', () => gameoverModal.classList.add('hidden'));
+
+            // Keyboard Controls (PC & Laptop)
+            window.addEventListener('keydown', (e) => {
+                if (!settingsModal.classList.contains('hidden')) return;
+                const k = e.key;
+
+                if (k === 'ArrowLeft' || k === 'a' || k === 'A') {
+                    e.preventDefault();
+                    setSelectedCol(state.selectedCol - 1);
+                } else if (k === 'ArrowRight' || k === 'd' || k === 'D') {
+                    e.preventDefault();
+                    setSelectedCol(state.selectedCol + 1);
+                } else if (k === ' ' || k === 'Enter' || k === 'ArrowDown' || k === 's' || k === 'S') {
+                    e.preventDefault();
+                    if (state.status === 'GAMEOVER') {
+                        initNewGame();
+                    } else {
+                        attemptDropInColumn(state.selectedCol);
+                    }
+                } else if (k >= '1' && k <= '9') {
+                    const colIdx = parseInt(k, 10) - 1;
+                    if (colIdx < config.cols) {
+                        setSelectedCol(colIdx);
+                        attemptDropInColumn(colIdx);
+                    }
+                } else if (k === 'z' || k === 'Z') {
+                    performUndo();
+                } else if (k === 'h' || k === 'H') {
+                    triggerSmartHint();
+                } else if (k === 'r' || k === 'R') {
+                    initNewGame();
+                }
+            });
+
+            // ============================================================================
+            // 10. SETTINGS MODAL & AUDIO CONTROLS
+            // ============================================================================
+            function bindOptionPills(groupId, attr, configProp) {
+                document.querySelectorAll(`#${groupId} .option-pill`).forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        sfx.columnTick();
+                        document.querySelectorAll(`#${groupId} .option-pill`).forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        config[configProp] = btn.getAttribute(attr);
+                        document.getElementById('ai-diff-section').style.opacity = config.mode === '1p' ? '1' : '0.4';
+                    });
+                });
+            }
+
+            bindOptionPills('opt-mode-group', 'data-mode', 'mode');
+            bindOptionPills('opt-ai-group', 'data-ai', 'aiDifficulty');
+            bindOptionPills('opt-board-group', 'data-board', 'boardPreset');
+
+            btnSettings.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+            btnCloseSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+            btnApplySettings.addEventListener('click', () => {
+                settingsModal.classList.add('hidden');
+                initNewGame();
+            });
+
+            btnResetScores.addEventListener('click', () => {
+                scores.p1 = 0;
+                scores.p2 = 0;
+                scores.ties = 0;
+                saveScores();
+                sfx.columnTick();
+            });
+
+            btnSound.addEventListener('click', () => {
+                sfx.muted = !sfx.muted;
+                iconSound.className = sfx.muted
+                    ? 'fa-solid fa-volume-xmark text-xs sm:text-sm text-slate-500'
+                    : 'fa-solid fa-volume-high text-xs sm:text-sm text-cyan-400';
+            });
+
+            window.addEventListener('resize', resizeBoard);
+
+            window.onload = function () {
+                loadScores();
+                initNewGame();
+                requestAnimationFrame(gameLoop);
+            };
+        })();
+    </script>
+</body>
+</html>
