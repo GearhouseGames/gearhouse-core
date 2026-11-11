@@ -1,0 +1,2448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Royal Solitaire Suite — Klondike, Pyramid, TriPeaks & Spider</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --felt-dark: #062c1e;
+            --felt-mid: #0b4630;
+            --felt-light: #115e40;
+            --gold: #f59e0b;
+            --card-red: #dc2626;
+            --card-black: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--felt-dark);
+            background-image:
+                radial-gradient(ellipse at 50% 35%, var(--felt-light) 0%, var(--felt-mid) 52%, var(--felt-dark) 100%);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Subtle woven casino felt texture overlay */
+        .felt-pattern {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
+            background-size: 16px 16px;
+        }
+
+        .font-royal {
+            font-family: 'Cinzel', serif;
+        }
+
+        /* Playing Card Styling */
+        .playing-card {
+            aspect-ratio: 5 / 7;
+            border-radius: 0.5rem;
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+            transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.14s ease, filter 0.14s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .playing-card:hover {
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55), 0 0 0 1.5px rgba(251, 191, 36, 0.6);
+        }
+
+        /* Face-down Royal Card Back */
+        .card-back {
+            background: linear-gradient(135deg, #1e3a8a 0%, #172554 100%);
+            border: 2px solid #f8fafc;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .card-back::before {
+            content: "";
+            position: absolute;
+            inset: 3px;
+            border: 1px solid rgba(251, 191, 36, 0.45);
+            border-radius: 0.3rem;
+            background-image:
+                radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.22) 2px, transparent 2.5px),
+                repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0px, rgba(255, 255, 255, 0.04) 4px, transparent 4px, transparent 8px);
+            background-size: 12px 12px, 100% 100%;
+        }
+
+        /* Selected & Hint Glow States */
+        .card-selected {
+            transform: translateY(-6px) scale(1.03) !important;
+            box-shadow: 0 0 0 3px #fbbf24, 0 10px 22px rgba(251, 191, 36, 0.55) !important;
+            z-index: 90 !important;
+        }
+
+        @keyframes hintPulse {
+            0%, 100% { box-shadow: 0 0 0 3px #38bdf8, 0 0 18px rgba(56, 189, 248, 0.85); transform: scale(1.03); }
+            50% { box-shadow: 0 0 0 5px #7dd3fc, 0 0 28px rgba(56, 189, 248, 1); transform: scale(1.06); }
+        }
+        .card-hint {
+            animation: hintPulse 1s infinite ease-in-out !important;
+            z-index: 95 !important;
+        }
+
+        /* Empty Card Slot */
+        .card-slot {
+            aspect-ratio: 5 / 7;
+            border-radius: 0.5rem;
+            border: 2px dashed rgba(255, 255, 255, 0.22);
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.25);
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .card-slot.slot-highlight {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        /* Blocked / Covered Cards in Pyramid & TriPeaks */
+        .card-covered {
+            filter: brightness(0.76) contrast(0.95);
+            cursor: default;
+        }
+        .card-covered:hover {
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Drag & Drop Visual Styles */
+        .playing-card {
+            touch-action: none;
+        }
+        .drag-source-dim {
+            opacity: 0.25 !important;
+            filter: grayscale(40%);
+        }
+        .drop-target-valid {
+            box-shadow: 0 0 0 3px #fbbf24, 0 0 22px rgba(251, 191, 36, 0.85) !important;
+            border-color: #fbbf24 !important;
+            background-color: rgba(251, 191, 36, 0.16) !important;
+            transition: box-shadow 0.12s ease, transform 0.12s ease;
+        }
+        #drag-ghost-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 9999;
+            will-change: transform;
+            filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.65));
+        }
+
+        /* Mode Tab Button */
+        .mode-tab {
+            transition: all 0.18s ease;
+        }
+        .mode-tab.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #062c1e;
+            font-weight: 700;
+            box-shadow: 0 3px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Custom Scrollbar for Rules Modal */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.4);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="felt-pattern text-slate-100 h-screen w-screen flex flex-col justify-between overflow-hidden">
+
+    <!-- ================= TOP NAVIGATION & MODE SELECTOR BAR ================= -->
+    <header class="w-full bg-slate-950/85 backdrop-blur-md border-b border-emerald-900/80 px-2.5 sm:px-5 py-2 z-30 shrink-0">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            
+            <!-- Brand Title -->
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-inner">
+                    <i class="fa-solid fa-crown text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-royal font-bold text-sm sm:text-lg tracking-wider text-white leading-none">
+                        ROYAL <span class="text-amber-400">SOLITAIRE</span>
+                    </h1>
+                    <p id="subtitle-mode" class="text-[10px] text-emerald-400 font-semibold tracking-wider uppercase mt-0.5">
+                        Classic Klondike
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4 Game Mode Switcher Tabs -->
+            <nav class="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 space-x-1 overflow-x-auto max-w-full">
+                <button type="button" data-mode="klondike" class="mode-tab active text-xs sm:text-sm px-2.5 sm:px-3.5 py-1.5 rounded-lg flex items-center space-x-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-layer-group text-[11px]"></i>
+                    <span>Solitaire</span>
+                </button>
+                <button type="button" data-mode="pyramid" class="mode-tab text-slate-300 hover:text-white text-xs sm:text-sm px-2.5 sm:px-3.5 py-1.5 rounded-lg flex items-center space-x-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-caret-up text-sm"></i>
+                    <span>Pyramid</span>
+                </button>
+                <button type="button" data-mode="tripeaks" class="mode-tab text-slate-300 hover:text-white text-xs sm:text-sm px-2.5 sm:px-3.5 py-1.5 rounded-lg flex items-center space-x-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-mountain text-[11px]"></i>
+                    <span>TriPeaks</span>
+                </button>
+                <button type="button" data-mode="spider" class="mode-tab text-slate-300 hover:text-white text-xs sm:text-sm px-2.5 sm:px-3.5 py-1.5 rounded-lg flex items-center space-x-1.5 whitespace-nowrap">
+                    <i class="fa-solid fa-spider text-[11px]"></i>
+                    <span>Spider</span>
+                </button>
+            </nav>
+
+            <!-- HUD Stats (Score, Moves, Time) -->
+            <div class="flex items-center space-x-3 sm:space-x-5 bg-slate-900/75 border border-slate-800/90 rounded-xl px-3 py-1">
+                <div class="text-center">
+                    <p class="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Score</p>
+                    <p id="stat-score" class="font-bold text-xs sm:text-sm text-amber-400">0</p>
+                </div>
+                <div class="h-5 w-[1px] bg-slate-800"></div>
+                <div class="text-center">
+                    <p class="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Moves</p>
+                    <p id="stat-moves" class="font-bold text-xs sm:text-sm text-emerald-400">0</p>
+                </div>
+                <div class="h-5 w-[1px] bg-slate-800"></div>
+                <div class="text-center">
+                    <p class="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Time</p>
+                    <p id="stat-time" class="font-bold text-xs sm:text-sm text-slate-200 font-mono">00:00</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= SUB-TOOLBAR FOR MODE OPTIONS (Klondike Draw / Spider Suits / Pyramid Sum) ================= -->
+    <div class="w-full bg-emerald-950/60 border-b border-emerald-900/50 px-3 py-1.5 z-20 shrink-0">
+        <div class="max-w-7xl mx-auto flex items-center justify-between text-xs">
+            <!-- Dynamic Mode Options Left -->
+            <div class="flex items-center space-x-2" id="mode-options-bar">
+                <!-- Populated dynamically based on current mode -->
+            </div>
+
+            <!-- Quick Status / Helper Pill Right -->
+            <div id="status-toast" class="text-[11px] text-emerald-200/90 font-medium truncate max-w-xs sm:max-w-md">
+                Drag cards with mouse/finger or tap to auto-move!
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Drag-and-Drop Ghost Layer -->
+    <div id="drag-ghost-layer" class="hidden"></div>
+
+    <!-- ================= MAIN CARD TABLE WORKSPACE ================= -->
+    <main id="table-container" class="relative flex-1 w-full max-w-7xl mx-auto px-1.5 sm:px-4 py-2 sm:py-4 overflow-y-auto overflow-x-hidden flex flex-col items-center">
+        <!-- Dynamic Game Board Injected Here -->
+        <div id="board-root" class="w-full h-full flex flex-col items-center"></div>
+    </main>
+
+    <!-- ================= BOTTOM ACTION BAR ================= -->
+    <footer class="w-full bg-slate-950/85 backdrop-blur-md border-t border-emerald-900/80 px-3 py-2 z-30 shrink-0">
+        <div class="max-w-4xl mx-auto flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-1.5 sm:space-x-2.5">
+                <button id="btn-new-deal" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl shadow flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-shuffle"></i>
+                    <span>New Deal</span>
+                </button>
+                <button id="btn-restart-deal" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold text-xs sm:text-sm px-2.5 sm:px-3.5 py-2 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition" title="Replay the exact same deal from the start">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span class="hidden sm:inline">Restart</span>
+                </button>
+            </div>
+
+            <!-- Auto-Complete Banner Button (Appears in Klondike when all cards are face-up) -->
+            <button id="btn-autocomplete" class="hidden bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl shadow-lg animate-bounce flex items-center space-x-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Auto-Finish!</span>
+            </button>
+
+            <div class="flex items-center space-x-1.5 sm:space-x-2.5">
+                <button id="btn-undo" disabled class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none active:scale-95 text-slate-100 font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-arrow-rotate-left text-amber-400"></i>
+                    <span>Undo</span>
+                </button>
+                <button id="btn-hint" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl border border-slate-700 flex items-center space-x-1.5 transition">
+                    <i class="fa-solid fa-lightbulb text-sky-400"></i>
+                    <span>Hint</span>
+                </button>
+                <button id="btn-rules" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-semibold text-xs sm:text-sm w-9 h-9 rounded-xl border border-slate-700 flex items-center justify-center transition" title="How to Play / Rules">
+                    <i class="fa-solid fa-circle-question text-emerald-400"></i>
+                </button>
+                <button id="btn-sound" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-amber-400 font-semibold text-xs sm:text-sm w-9 h-9 rounded-xl border border-slate-700 flex items-center justify-center transition" title="Toggle Audio">
+                    <i id="icon-sound" class="fa-solid fa-volume-high"></i>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= HOW TO PLAY / RULES MODAL ================= -->
+    <div id="rules-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-book-open text-amber-400 text-lg"></i>
+                    <h3 class="font-royal font-bold text-lg sm:text-xl text-white">Solitaire Suite Rules</h3>
+                </div>
+                <button id="btn-close-rules" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-300 pr-1">
+                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-amber-400 mb-1 flex items-center"><i class="fa-solid fa-layer-group mr-2"></i>1. Classic Solitaire (Klondike)</h4>
+                    <p>Build all 4 Foundation piles up in suit from <strong>Ace to King</strong>. On the 7 tableau columns, stack cards downward in <strong>alternating colors</strong> (e.g., Red 7 on Black 8). Only a <strong>King</strong> can fill an empty column.</p>
+                </div>
+                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-amber-400 mb-1 flex items-center"><i class="fa-solid fa-caret-up mr-2"></i>2. Pyramid Solitaire</h4>
+                    <p>Clear the entire 28-card pyramid by pairing any two uncovered cards that <strong>add up to 13</strong>. Values: Ace = 1, 2–10 = face value, Jack = 11, Queen = 12, and <strong>Kings = 13</strong> (tap a King by itself to remove it immediately!). Match pyramid cards with the Stock or Waste pile too.</p>
+                </div>
+                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-amber-400 mb-1 flex items-center"><i class="fa-solid fa-mountain mr-2"></i>3. TriPeaks Solitaire</h4>
+                    <p>Clear all three peaks by tapping uncovered cards that are <strong>1 rank higher or lower</strong> than the current Waste pile card, regardless of suit. Ranks wrap around seamlessly (<strong>King ↔ Ace ↔ 2</strong>). Build long streaks before drawing from the Stock for bonus points!</p>
+                </div>
+                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-amber-400 mb-1 flex items-center"><i class="fa-solid fa-spider mr-2"></i>4. Spider Solitaire (1, 2, or 4 Suits)</h4>
+                    <p>Build complete descending sequences from <strong>King down to Ace of the exact same suit</strong> across the 10 columns; completed runs automatically fly off to the Foundation! You can place any card on a card 1 rank higher, but you can only move a <em>group</em> of cards together if they share the same suit. Tap the Stock to deal 10 new cards.</p>
+                </div>
+            </div>
+            <button id="btn-got-it" class="mt-4 w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-xl transition">
+                Got It, Let's Play!
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= VICTORY CELEBRATION OVERLAY & CONFETTI CANVAS ================= -->
+    <canvas id="victory-canvas" class="fixed inset-0 pointer-events-none z-40 hidden"></canvas>
+    <div id="victory-modal" class="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-900 border-2 border-amber-400/80 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-amber-400 shadow-lg">
+                <i class="fa-solid fa-trophy text-3xl"></i>
+            </div>
+            <h2 class="font-royal font-bold text-2xl sm:text-3xl text-white mb-1">YOU WON!</h2>
+            <p id="victory-subtitle" class="text-xs text-emerald-400 font-semibold uppercase tracking-wider mb-5">Classic Klondike Cleared</p>
+
+            <div class="grid grid-cols-3 gap-2 bg-slate-950/80 border border-slate-800 rounded-xl p-3 mb-6">
+                <div>
+                    <p class="text-[10px] uppercase text-slate-400">Score</p>
+                    <p id="win-score" class="font-bold text-lg text-amber-400">0</p>
+                </div>
+                <div class="border-x border-slate-800">
+                    <p class="text-[10px] uppercase text-slate-400">Moves</p>
+                    <p id="win-moves" class="font-bold text-lg text-emerald-400">0</p>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase text-slate-400">Time</p>
+                    <p id="win-time" class="font-bold text-lg text-white font-mono">00:00</p>
+                </div>
+            </div>
+
+            <button id="btn-win-play-again" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl shadow-lg transition flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-play"></i>
+                <span>Play Another Deal</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= SOLITAIRE SUITE ENGINE SCRIPT ================= -->
+    <script>
+        (function () {
+            "use strict";
+
+            // ============================================================================
+            // 1. PROCEDURAL WEB AUDIO SYNTHESIZER (Card Crisp Flip, Slide, Pair, Win)
+            // ============================================================================
+            class CardAudio {
+                constructor() {
+                    this.ctx = null;
+                    this.muted = false;
+                }
+
+                init() {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) this.ctx = new AudioCtx();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                }
+
+                // Crisp card snap / placement
+                cardSnap(freq = 480) {
+                    if (this.muted) return;
+                    this.init();
+                    if (!this.ctx) return;
+
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+                    osc.frequency.exponentialRampToValueAtTime(160, now + 0.055);
+
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.055);
+                }
+
+                // Soft deck deal / draw sound
+                cardFlip() {
+                    if (this.muted) return;
+                    this.cardSnap(640);
+                }
+
+                // Chime when pairing in Pyramid, streaking in TriPeaks, or foundation drop
+                chime(combo = 1) {
+                    if (this.muted) return;
+                    this.init();
+                    if (!this.ctx) return;
+
+                    const now = this.ctx.currentTime;
+                    const baseFreq = Math.min(1100, 440 + combo * 55);
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(baseFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, now + 0.14);
+
+                    gain.gain.setValueAtTime(0.14, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                }
+
+                // Subtle error buzz
+                invalid() {
+                    if (this.muted) return;
+                    this.init();
+                    if (!this.ctx) return;
+
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.1);
+
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                }
+
+                // Royal Victory Fanfare
+                winFanfare() {
+                    if (this.muted) return;
+                    this.init();
+                    if (!this.ctx) return;
+
+                    const now = this.ctx.currentTime;
+                    const notes = [523.25, 659.25, 783.99, 1046.5, 987.77, 1046.5];
+                    notes.forEach((f, i) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        const t = now + i * 0.11;
+                        osc.frequency.setValueAtTime(f, t);
+                        gain.gain.setValueAtTime(0.16, t);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(t);
+                        osc.stop(t + 0.25);
+                    });
+                }
+            }
+
+            const audio = new CardAudio();
+
+            // ============================================================================
+            // 2. CARD DECK & VECTOR SUIT DEFINITIONS
+            // ============================================================================
+            const SUITS = ['spades', 'hearts', 'clubs', 'diamonds'];
+            const SUIT_INFO = {
+                spades:   { symbol: '♠', color: 'black', hex: '#0f172a' },
+                hearts:   { symbol: '♥', color: 'red',   hex: '#dc2626' },
+                clubs:    { symbol: '♣', color: 'black', hex: '#0f172a' },
+                diamonds: { symbol: '♦', color: 'red',   hex: '#dc2626' }
+            };
+            const RANK_LABELS = {
+                1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7',
+                8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K'
+            };
+
+            // Seeded PRNG so "Restart Deal" deals the exact same shuffle
+            class SeededRNG {
+                constructor(seed) {
+                    this.seed = seed % 2147483647;
+                    if (this.seed <= 0) this.seed += 2147483646;
+                }
+                next() {
+                    this.seed = (this.seed * 16807) % 2147483647;
+                    return (this.seed - 1) / 2147483646;
+                }
+            }
+
+            function createDeck(seed, suitCount = 4, numDecks = 1) {
+                const rng = new SeededRNG(seed);
+                let activeSuits = SUITS;
+                if (suitCount === 1) activeSuits = ['spades', 'spades', 'spades', 'spades'];
+                else if (suitCount === 2) activeSuits = ['spades', 'hearts', 'spades', 'hearts'];
+
+                const cards = [];
+                let idCounter = 1;
+                for (let d = 0; d < numDecks; d++) {
+                    for (let s = 0; s < 4; s++) {
+                        const suit = activeSuits[s];
+                        for (let rank = 1; rank <= 13; rank++) {
+                            cards.push({
+                                id: `c_${idCounter++}`,
+                                suit,
+                                rank,
+                                color: SUIT_INFO[suit].color,
+                                faceUp: false
+                            });
+                        }
+                    }
+                }
+
+                // Fisher-Yates shuffle with seeded RNG
+                for (let i = cards.length - 1; i > 0; i--) {
+                    const j = Math.floor(rng.next() * (i + 1));
+                    const temp = cards[i];
+                    cards[i] = cards[j];
+                    cards[j] = temp;
+                }
+                return cards;
+            }
+
+            // ============================================================================
+            // 3. GLOBAL APPLICATION STATE
+            // ============================================================================
+            let app = {
+                mode: 'klondike',          // 'klondike' | 'pyramid' | 'tripeaks' | 'spider'
+                klondikeDraw: 1,           // 1 or 3 card draw
+                spiderSuits: 1,            // 1, 2, or 4 suits
+                currentSeed: Date.now(),
+                score: 0,
+                moves: 0,
+                seconds: 0,
+                timerInterval: null,
+                selected: null,            // Currently selected card/location
+                hintIds: [],               // Card IDs highlighted by Hint button
+                undoStack: [],             // Deep snapshots of state for Undo
+                state: null,               // Mode-specific board state
+                won: false
+            };
+
+            // DOM References
+            const boardRoot = document.getElementById('board-root');
+            const modeOptionsBar = document.getElementById('mode-options-bar');
+            const statusToast = document.getElementById('status-toast');
+            const subtitleMode = document.getElementById('subtitle-mode');
+            const statScore = document.getElementById('stat-score');
+            const statMoves = document.getElementById('stat-moves');
+            const statTime = document.getElementById('stat-time');
+            const btnUndo = document.getElementById('btn-undo');
+            const btnHint = document.getElementById('btn-hint');
+            const btnNewDeal = document.getElementById('btn-new-deal');
+            const btnRestartDeal = document.getElementById('btn-restart-deal');
+            const btnAutocomplete = document.getElementById('btn-autocomplete');
+            const btnRules = document.getElementById('btn-rules');
+            const btnCloseRules = document.getElementById('btn-close-rules');
+            const btnGotIt = document.getElementById('btn-got-it');
+            const rulesModal = document.getElementById('rules-modal');
+            const btnSound = document.getElementById('btn-sound');
+            const iconSound = document.getElementById('icon-sound');
+            const victoryModal = document.getElementById('victory-modal');
+            const victoryCanvas = document.getElementById('victory-canvas');
+            const btnWinPlayAgain = document.getElementById('btn-win-play-again');
+            const dragGhostLayer = document.getElementById('drag-ghost-layer');
+
+            // ============================================================================
+            // 3B. UNIFIED MOUSE & TOUCH DRAG-AND-DROP CONTROLLER
+            // ============================================================================
+            let dragCtrl = {
+                active: false,
+                isDragging: false,
+                startX: 0,
+                startY: 0,
+                currentX: 0,
+                currentY: 0,
+                offsetX: 0,
+                offsetY: 0,
+                cardWidth: 80,
+                payload: null,        // Mode-specific source descriptor + cards[]
+                sourceElements: [],   // DOM elements dimmed while dragging
+                hoveredDropEl: null,  // Currently highlighted valid drop target
+                suppressClickUntil: 0 // Timestamp to prevent synthetic click after drag
+            };
+
+            function attachDraggable(el, payload, onTapCallback) {
+                const startHandler = (clientX, clientY, e) => {
+                    if (app.won) return;
+                    if (e.type === 'mousedown' && e.button !== 0) return;
+
+                    const rect = el.getBoundingClientRect();
+                    dragCtrl.active = true;
+                    dragCtrl.isDragging = false;
+                    dragCtrl.startX = clientX;
+                    dragCtrl.startY = clientY;
+                    dragCtrl.currentX = clientX;
+                    dragCtrl.currentY = clientY;
+                    dragCtrl.offsetX = clientX - rect.left;
+                    dragCtrl.offsetY = clientY - rect.top;
+                    dragCtrl.cardWidth = rect.width;
+                    dragCtrl.payload = payload;
+                    dragCtrl.onTap = onTapCallback;
+                    dragCtrl.sourceElements = payload.getSourceElements ? payload.getSourceElements(el) : [el];
+                };
+
+                el.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    startHandler(e.clientX, e.clientY, e);
+                });
+
+                el.addEventListener('touchstart', (e) => {
+                    if (e.touches.length !== 1) return;
+                    e.stopPropagation();
+                    const touch = e.touches[0];
+                    startHandler(touch.clientX, touch.clientY, e);
+                }, { passive: true });
+
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (performance.now() < dragCtrl.suppressClickUntil) return;
+                    if (onTapCallback) onTapCallback(e);
+                });
+            }
+
+            function beginVisualDrag() {
+                dragCtrl.isDragging = true;
+                audio.cardSnap(560);
+
+                // Build floating card stack inside #drag-ghost-layer
+                dragGhostLayer.innerHTML = '';
+                dragGhostLayer.style.width = `${dragCtrl.cardWidth}px`;
+                dragGhostLayer.classList.remove('hidden');
+
+                const cards = dragCtrl.payload.cards || [dragCtrl.payload.card];
+                const stepY = window.innerWidth < 640 ? 20 : 26;
+
+                cards.forEach((c, idx) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'w-full left-0';
+                    if (idx > 0) {
+                        wrap.style.position = 'absolute';
+                        wrap.style.top = `${idx * stepY}px`;
+                    } else {
+                        wrap.style.position = 'relative';
+                    }
+                    wrap.style.zIndex = String(idx + 1);
+                    const cloneCard = createCardElement(c, 'shadow-2xl ring-2 ring-amber-400');
+                    wrap.appendChild(cloneCard);
+                    dragGhostLayer.appendChild(wrap);
+                });
+
+                dragCtrl.sourceElements.forEach(srcEl => {
+                    if (srcEl) srcEl.classList.add('drag-source-dim');
+                });
+
+                updateGhostPosition(dragCtrl.currentX, dragCtrl.currentY);
+            }
+
+            function updateGhostPosition(clientX, clientY) {
+                const x = clientX - dragCtrl.offsetX;
+                const y = clientY - dragCtrl.offsetY;
+                dragGhostLayer.style.transform = `translate3d(${x}px, ${y}px, 0) rotate(1.5deg) scale(1.04)`;
+
+                // Detect valid drop target underneath cursor/finger
+                const targetEl = findValidDropTargetAt(clientX, clientY, dragCtrl.payload);
+                if (dragCtrl.hoveredDropEl && dragCtrl.hoveredDropEl !== targetEl) {
+                    dragCtrl.hoveredDropEl.classList.remove('drop-target-valid');
+                }
+                if (targetEl) {
+                    targetEl.classList.add('drop-target-valid');
+                }
+                dragCtrl.hoveredDropEl = targetEl;
+            }
+
+            function findValidDropTargetAt(clientX, clientY, payload) {
+                const elements = document.elementsFromPoint(clientX, clientY);
+                for (const el of elements) {
+                    const dropZone = el.closest('[data-drop-zone]');
+                    if (!dropZone) continue;
+                    if (isDropValid(payload, dropZone)) {
+                        return dropZone;
+                    }
+                }
+                return null;
+            }
+
+            function isDropValid(payload, dropZone) {
+                const zoneType = dropZone.dataset.dropZone;
+                const st = app.state;
+
+                if (app.mode === 'klondike') {
+                    const leadCard = payload.cards[0];
+                    if (zoneType === 'klondike-foundation') {
+                        const suit = dropZone.dataset.suit;
+                        if (payload.cards.length !== 1) return false;
+                        if (payload.zone === 'foundation' && payload.suit === suit) return false;
+                        return leadCard.suit === suit && canMoveToKlondikeFoundation(leadCard, st.foundations);
+                    }
+                    if (zoneType === 'klondike-tableau') {
+                        const col = parseInt(dropZone.dataset.col, 10);
+                        if (payload.zone === 'tableau' && payload.colIndex === col) return false;
+                        return canMoveToKlondikeTableau(leadCard, st.tableau[col]);
+                    }
+                } else if (app.mode === 'pyramid') {
+                    if (zoneType === 'pyramid-card') {
+                        const targetCardId = dropZone.dataset.cardId;
+                        if (targetCardId === payload.card.id) return false;
+                        const targetRank = parseInt(dropZone.dataset.rank, 10);
+                        return (payload.card.rank + targetRank) === 13;
+                    }
+                } else if (app.mode === 'tripeaks') {
+                    if (zoneType === 'tripeaks-waste') {
+                        const topWaste = st.waste[st.waste.length - 1];
+                        return areRanksAdjacentWrap(payload.card.rank, topWaste.rank);
+                    }
+                } else if (app.mode === 'spider') {
+                    if (zoneType === 'spider-tableau') {
+                        const col = parseInt(dropZone.dataset.col, 10);
+                        if (payload.colIndex === col) return false;
+                        const targetPile = st.tableau[col];
+                        if (targetPile.length === 0) return true;
+                        const topCard = targetPile[targetPile.length - 1];
+                        return topCard.rank === payload.cards[0].rank + 1;
+                    }
+                }
+                return false;
+            }
+
+            function executeDropAction(payload, dropZone) {
+                const zoneType = dropZone.dataset.dropZone;
+                const st = app.state;
+
+                if (app.mode === 'klondike') {
+                    if (zoneType === 'klondike-foundation') {
+                        const suit = dropZone.dataset.suit;
+                        pushUndoState();
+                        const card = payload.cards[0];
+                        if (payload.zone === 'waste') {
+                            st.waste.pop();
+                        } else if (payload.zone === 'tableau') {
+                            st.tableau[payload.colIndex].pop();
+                            flipTopTableauIfNeeded(st.tableau[payload.colIndex]);
+                        }
+                        st.foundations[suit].push(card);
+                        audio.chime(st.foundations[suit].length);
+                        app.score += 15;
+                        app.moves++;
+                        app.selected = null;
+                        app.hintIds = [];
+                        updateHUD();
+                        renderCurrentBoard();
+                        checkKlondikeWin();
+                        return true;
+                    }
+                    if (zoneType === 'klondike-tableau') {
+                        const targetCol = parseInt(dropZone.dataset.col, 10);
+                        executeKlondikeMoveToTableau(payload, targetCol);
+                        if (payload.zone === 'foundation') {
+                            setToast(`Moved ${RANK_LABELS[payload.card.rank]}${SUIT_INFO[payload.card.suit].symbol} from Foundation to Tableau.`);
+                        }
+                        return true;
+                    }
+                } else if (app.mode === 'pyramid') {
+                    if (zoneType === 'pyramid-card') {
+                        const targetSource = JSON.parse(dropZone.dataset.sourceInfo);
+                        pushUndoState();
+                        removePyramidCardSource(payload);
+                        removePyramidCardSource(targetSource);
+                        audio.chime(3);
+                        app.score += 100;
+                        app.moves++;
+                        setToast(`Paired ${RANK_LABELS[payload.card.rank]} + ${RANK_LABELS[targetSource.card.rank]} = 13!`);
+                        app.selected = null;
+                        app.hintIds = [];
+                        updateHUD();
+                        renderCurrentBoard();
+                        checkPyramidWin();
+                        return true;
+                    }
+                } else if (app.mode === 'tripeaks') {
+                    if (zoneType === 'tripeaks-waste') {
+                        pushUndoState();
+                        const slot = st.slots[payload.slotIndex];
+                        const picked = slot.card;
+                        slot.card = null;
+                        st.waste.push(picked);
+                        st.streak++;
+                        refreshTriPeaksFaceUp();
+                        audio.chime(st.streak);
+                        const pts = 25 * st.streak;
+                        app.score += pts;
+                        app.moves++;
+                        app.hintIds = [];
+                        setToast(`Streak x${st.streak}! (+${pts} pts)`);
+                        updateHUD();
+                        renderCurrentBoard();
+                        if (st.slots.every(s => s.card === null)) {
+                            triggerWin('All Three Peaks Conquered!');
+                        }
+                        return true;
+                    }
+                } else if (app.mode === 'spider') {
+                    if (zoneType === 'spider-tableau') {
+                        const targetCol = parseInt(dropZone.dataset.col, 10);
+                        executeSpiderMove(payload.colIndex, payload.cardIndex, targetCol);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function finishDragGesture(clientX, clientY) {
+                if (!dragCtrl.active) return;
+                const wasDragging = dragCtrl.isDragging;
+                const payload = dragCtrl.payload;
+
+                if (dragCtrl.hoveredDropEl) {
+                    dragCtrl.hoveredDropEl.classList.remove('drop-target-valid');
+                    dragCtrl.hoveredDropEl = null;
+                }
+
+                dragCtrl.active = false;
+                dragCtrl.isDragging = false;
+
+                if (wasDragging) {
+                    dragCtrl.suppressClickUntil = performance.now() + 320;
+                    const dropTarget = findValidDropTargetAt(clientX, clientY, payload);
+                    if (dropTarget && executeDropAction(payload, dropTarget)) {
+                        dragGhostLayer.classList.add('hidden');
+                        dragGhostLayer.innerHTML = '';
+                        return;
+                    }
+
+                    // Animate smooth snap-back to original position on invalid drop
+                    const startRect = dragCtrl.sourceElements[0]?.getBoundingClientRect();
+                    if (startRect) {
+                        dragGhostLayer.style.transition = 'transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                        dragGhostLayer.style.transform = `translate3d(${startRect.left}px, ${startRect.top}px, 0) scale(1)`;
+                        setTimeout(() => {
+                            dragGhostLayer.style.transition = '';
+                            dragGhostLayer.classList.add('hidden');
+                            dragGhostLayer.innerHTML = '';
+                            dragCtrl.sourceElements.forEach(el => el?.classList.remove('drag-source-dim'));
+                        }, 180);
+                    } else {
+                        dragGhostLayer.classList.add('hidden');
+                        dragGhostLayer.innerHTML = '';
+                        dragCtrl.sourceElements.forEach(el => el?.classList.remove('drag-source-dim'));
+                    }
+                }
+            }
+
+            window.addEventListener('mousemove', (e) => {
+                if (!dragCtrl.active) return;
+                dragCtrl.currentX = e.clientX;
+                dragCtrl.currentY = e.clientY;
+                if (!dragCtrl.isDragging) {
+                    const dist = Math.hypot(e.clientX - dragCtrl.startX, e.clientY - dragCtrl.startY);
+                    if (dist > 6) beginVisualDrag();
+                } else {
+                    updateGhostPosition(e.clientX, e.clientY);
+                }
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!dragCtrl.active || e.touches.length !== 1) return;
+                const touch = e.touches[0];
+                dragCtrl.currentX = touch.clientX;
+                dragCtrl.currentY = touch.clientY;
+                if (!dragCtrl.isDragging) {
+                    const dist = Math.hypot(touch.clientX - dragCtrl.startX, touch.clientY - dragCtrl.startY);
+                    if (dist > 8) beginVisualDrag();
+                }
+                if (dragCtrl.isDragging) {
+                    e.preventDefault(); // Prevent page scroll while dragging a card
+                    updateGhostPosition(touch.clientX, touch.clientY);
+                }
+            }, { passive: false });
+
+            window.addEventListener('mouseup', (e) => {
+                if (dragCtrl.active) finishDragGesture(e.clientX, e.clientY);
+            });
+
+            window.addEventListener('touchend', (e) => {
+                if (!dragCtrl.active) return;
+                const touch = e.changedTouches[0];
+                finishDragGesture(touch ? touch.clientX : dragCtrl.currentX, touch ? touch.clientY : dragCtrl.currentY);
+            });
+
+            function setToast(msg) {
+                statusToast.textContent = msg;
+            }
+
+            function formatTime(sec) {
+                const m = String(Math.floor(sec / 60)).padStart(2, '0');
+                const s = String(sec % 60).padStart(2, '0');
+                return `${m}:${s}`;
+            }
+
+            function updateHUD() {
+                statScore.textContent = app.score;
+                statMoves.textContent = app.moves;
+                statTime.textContent = formatTime(app.seconds);
+                btnUndo.disabled = app.undoStack.length === 0 || app.won;
+            }
+
+            function pushUndoState() {
+                const snapshot = JSON.stringify({
+                    state: app.state,
+                    score: app.score,
+                    moves: app.moves
+                });
+                app.undoStack.push(snapshot);
+                if (app.undoStack.length > 40) app.undoStack.shift();
+                updateHUD();
+            }
+
+            function performUndo() {
+                if (app.undoStack.length === 0 || app.won) return;
+                audio.cardFlip();
+                const last = JSON.parse(app.undoStack.pop());
+                app.state = last.state;
+                app.score = Math.max(0, last.score - 5);
+                app.moves = last.moves + 1;
+                app.selected = null;
+                app.hintIds = [];
+                updateHUD();
+                renderCurrentBoard();
+                setToast('Move undone.');
+            }
+
+            // ============================================================================
+            // 4. CARD HTML GENERATOR (Crisp Vector Layout for Desktop & Mobile)
+            // ============================================================================
+            function createCardElement(card, extraClasses = '', isCovered = false) {
+                const el = document.createElement('div');
+                el.dataset.cardId = card.id;
+
+                if (!card.faceUp) {
+                    el.className = `playing-card card-back w-full ${extraClasses}`;
+                    return el;
+                }
+
+                const suitMeta = SUIT_INFO[card.suit];
+                const rankStr = RANK_LABELS[card.rank];
+                const isSelected = app.selected && app.selected.cardId === card.id;
+                const isHinted = app.hintIds.includes(card.id);
+
+                const colorClass = suitMeta.color === 'red' ? 'text-red-600' : 'text-slate-900';
+                const coveredClass = isCovered ? 'card-covered' : '';
+                const selectedClass = isSelected ? 'card-selected' : '';
+                const hintClass = isHinted ? 'card-hint' : '';
+
+                el.className = `playing-card w-full flex flex-col justify-between p-1 sm:p-1.5 ${colorClass} ${coveredClass} ${selectedClass} ${hintClass} ${extraClasses}`;
+
+                // Center Graphic (Crown/Royalty icon for J/Q/K or large suit pip)
+                let centerSymbol = suitMeta.symbol;
+                if (card.rank === 13) centerSymbol = '♔';
+                else if (card.rank === 12) centerSymbol = '♕';
+                else if (card.rank === 11) centerSymbol = '♖';
+
+                el.innerHTML = `
+                    <div class="flex items-center justify-between leading-none w-full">
+                        <span class="font-extrabold text-[11px] sm:text-sm md:text-base tracking-tighter">${rankStr}</span>
+                        <span class="text-[10px] sm:text-xs md:text-sm">${suitMeta.symbol}</span>
+                    </div>
+                    <div class="flex items-center justify-center my-auto pointer-events-none">
+                        <span class="text-lg sm:text-2xl md:text-3xl leading-none opacity-90">${centerSymbol}</span>
+                    </div>
+                    <div class="hidden sm:flex items-center justify-between leading-none w-full rotate-180 opacity-80">
+                        <span class="font-extrabold text-[10px] md:text-xs tracking-tighter">${rankStr}</span>
+                        <span class="text-[9px] md:text-xs">${suitMeta.symbol}</span>
+                    </div>
+                `;
+
+                return el;
+            }
+
+            // ============================================================================
+            // 5. MODE 1: CLASSIC KLONDIKE SOLITAIRE (Default)
+            // ============================================================================
+            function initKlondike() {
+                const deck = createDeck(app.currentSeed, 4, 1);
+                const tableau = [[], [], [], [], [], [], []];
+
+                for (let col = 0; col < 7; col++) {
+                    for (let row = 0; row <= col; row++) {
+                        const card = deck.pop();
+                        card.faceUp = (row === col);
+                        tableau[col].push(card);
+                    }
+                }
+
+                app.state = {
+                    stock: deck, // Remaining 24 cards face-down
+                    waste: [],
+                    foundations: { spades: [], hearts: [], clubs: [], diamonds: [] },
+                    tableau
+                };
+                setToast('Klondike: Build foundations Ace to King by suit, or stack alternating colors down.');
+            }
+
+            function canMoveToKlondikeFoundation(card, foundations) {
+                const pile = foundations[card.suit];
+                return pile.length + 1 === card.rank;
+            }
+
+            function canMoveToKlondikeTableau(card, targetPile) {
+                if (targetPile.length === 0) {
+                    return card.rank === 13; // Only Kings on empty columns
+                }
+                const topCard = targetPile[targetPile.length - 1];
+                return topCard.faceUp && topCard.color !== card.color && topCard.rank === card.rank + 1;
+            }
+
+            function checkKlondikeAutoCompleteAvailable() {
+                if (app.mode !== 'klondike' || app.won) return false;
+                const st = app.state;
+                if (st.stock.length > 0 || st.waste.length > 0) return false;
+                for (let c = 0; c < 7; c++) {
+                    for (let i = 0; i < st.tableau[c].length; i++) {
+                        if (!st.tableau[c][i].faceUp) return false;
+                    }
+                }
+                const totalFoundation = Object.values(st.foundations).reduce((acc, p) => acc + p.length, 0);
+                return totalFoundation < 52;
+            }
+
+            function checkKlondikeWin() {
+                const total = Object.values(app.state.foundations).reduce((acc, p) => acc + p.length, 0);
+                if (total === 52) triggerWin('Classic Klondike Cleared!');
+            }
+
+            function handleKlondikeStockClick() {
+                const st = app.state;
+                pushUndoState();
+                app.selected = null;
+                app.hintIds = [];
+
+                if (st.stock.length > 0) {
+                    const count = Math.min(app.klondikeDraw, st.stock.length);
+                    for (let i = 0; i < count; i++) {
+                        const c = st.stock.pop();
+                        c.faceUp = true;
+                        st.waste.push(c);
+                    }
+                    audio.cardFlip();
+                    app.moves++;
+                } else if (st.waste.length > 0) {
+                    while (st.waste.length > 0) {
+                        const c = st.waste.pop();
+                        c.faceUp = false;
+                        st.stock.push(c);
+                    }
+                    audio.cardFlip();
+                    app.moves++;
+                } else {
+                    app.undoStack.pop();
+                }
+                updateHUD();
+                renderCurrentBoard();
+            }
+
+            // Smart auto-move on single tap or double click in Klondike
+            function trySmartMoveKlondike(sourceInfo) {
+                const st = app.state;
+                const { zone, colIndex, cardIndex, card } = sourceInfo;
+                const isTopCard = (zone === 'waste') || (zone === 'tableau' && cardIndex === st.tableau[colIndex].length - 1);
+
+                // 1. Priority: Move single top card to Foundation if valid (only if not already on foundation)
+                if (zone !== 'foundation' && isTopCard && canMoveToKlondikeFoundation(card, st.foundations)) {
+                    pushUndoState();
+                    if (zone === 'waste') st.waste.pop();
+                    else {
+                        st.tableau[colIndex].pop();
+                        flipTopTableauIfNeeded(st.tableau[colIndex]);
+                    }
+                    st.foundations[card.suit].push(card);
+                    audio.chime(st.foundations[card.suit].length);
+                    app.score += 15;
+                    app.moves++;
+                    app.selected = null;
+                    app.hintIds = [];
+                    updateHUD();
+                    renderCurrentBoard();
+                    checkKlondikeWin();
+                    return true;
+                }
+
+                // 2. Otherwise try moving card/stack (including from Foundation!) to a valid Tableau column
+                for (let targetCol = 0; targetCol < 7; targetCol++) {
+                    if (zone === 'tableau' && targetCol === colIndex) continue;
+                    // Avoid moving a King from an already empty-base column to another empty column pointlessly
+                    if (zone === 'tableau' && card.rank === 13 && cardIndex === 0 && st.tableau[targetCol].length === 0) continue;
+
+                    if (canMoveToKlondikeTableau(card, st.tableau[targetCol])) {
+                        executeKlondikeMoveToTableau(sourceInfo, targetCol);
+                        if (zone === 'foundation') {
+                            setToast(`Moved ${RANK_LABELS[card.rank]}${SUIT_INFO[card.suit].symbol} from Foundation back to Tableau!`);
+                        }
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            function flipTopTableauIfNeeded(pile) {
+                if (pile.length > 0 && !pile[pile.length - 1].faceUp) {
+                    pile[pile.length - 1].faceUp = true;
+                    app.score += 5;
+                }
+            }
+
+            function executeKlondikeMoveToTableau(sourceInfo, targetCol) {
+                const st = app.state;
+                pushUndoState();
+
+                if (sourceInfo.zone === 'waste') {
+                    const c = st.waste.pop();
+                    st.tableau[targetCol].push(c);
+                } else if (sourceInfo.zone === 'foundation') {
+                    const c = st.foundations[sourceInfo.suit].pop();
+                    st.tableau[targetCol].push(c);
+                } else if (sourceInfo.zone === 'tableau') {
+                    const movingStack = st.tableau[sourceInfo.colIndex].splice(sourceInfo.cardIndex);
+                    st.tableau[targetCol].push(...movingStack);
+                    flipTopTableauIfNeeded(st.tableau[sourceInfo.colIndex]);
+                }
+
+                audio.cardSnap();
+                app.score = Math.max(0, app.score + (sourceInfo.zone === 'foundation' ? -5 : 5));
+                app.moves++;
+                app.selected = null;
+                app.hintIds = [];
+                updateHUD();
+                renderCurrentBoard();
+            }
+
+            function renderKlondike() {
+                const st = app.state;
+                btnAutocomplete.classList.toggle('hidden', !checkKlondikeAutoCompleteAvailable());
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'w-full max-w-5xl flex flex-col space-y-3 sm:space-y-5';
+
+                // TOP ROW: Stock, Waste, Spacer, 4 Foundations
+                const topRow = document.createElement('div');
+                topRow.className = 'grid grid-cols-7 gap-1.5 sm:gap-3 w-full items-start';
+
+                // 1. Stock Pile
+                const stockSlot = document.createElement('div');
+                stockSlot.className = 'card-slot cursor-pointer relative';
+                if (st.stock.length > 0) {
+                    const dummyBack = createCardElement({ id: 'stock_top', faceUp: false });
+                    const badge = document.createElement('span');
+                    badge.className = 'absolute bottom-1 right-1 bg-slate-950/85 text-amber-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-400/40';
+                    badge.textContent = st.stock.length;
+                    dummyBack.appendChild(badge);
+                    stockSlot.appendChild(dummyBack);
+                } else {
+                    stockSlot.innerHTML = `<i class="fa-solid fa-rotate-right text-lg sm:text-2xl text-emerald-400/70"></i>`;
+                }
+                stockSlot.addEventListener('click', handleKlondikeStockClick);
+                topRow.appendChild(stockSlot);
+
+                // 2. Waste Pile (fan up to 3 visible cards)
+                const wasteContainer = document.createElement('div');
+                wasteContainer.className = 'relative aspect-[5/7] w-full';
+                const visibleWaste = st.waste.slice(-3);
+                visibleWaste.forEach((c, idx) => {
+                    const isTop = idx === visibleWaste.length - 1;
+                    const holder = document.createElement('div');
+                    holder.className = 'absolute top-0 w-full transition-all';
+                    holder.style.left = `${idx * 14}%`;
+                    holder.style.zIndex = String(10 + idx);
+                    const cardEl = createCardElement(c, '', !isTop);
+                    if (isTop) {
+                        const wastePayload = {
+                            zone: 'waste',
+                            card: c,
+                            cards: [c],
+                            cardId: c.id
+                        };
+                        attachDraggable(cardEl, wastePayload, () => {
+                            onKlondikeCardInteract(wastePayload);
+                        });
+                    }
+                    holder.appendChild(cardEl);
+                    wasteContainer.appendChild(holder);
+                });
+                topRow.appendChild(wasteContainer);
+
+                // 3. Spacer Column
+                const spacer = document.createElement('div');
+                topRow.appendChild(spacer);
+
+                // 4. Four Suit Foundations (Supports dropping onto AND dragging/tapping back off to Tableau!)
+                SUITS.forEach(suit => {
+                    const pile = st.foundations[suit];
+                    const fSlot = document.createElement('div');
+                    fSlot.className = 'card-slot relative';
+                    fSlot.dataset.dropZone = 'klondike-foundation';
+                    fSlot.dataset.suit = suit;
+
+                    const handleFoundationSlotTap = () => {
+                        if (app.selected) {
+                            const sel = app.selected;
+                            const isSingle = (sel.zone === 'waste') || (sel.zone === 'tableau' && sel.cardIndex === st.tableau[sel.colIndex].length - 1);
+                            if (isSingle && sel.card.suit === suit && canMoveToKlondikeFoundation(sel.card, st.foundations)) {
+                                pushUndoState();
+                                if (sel.zone === 'waste') st.waste.pop();
+                                else {
+                                    st.tableau[sel.colIndex].pop();
+                                    flipTopTableauIfNeeded(st.tableau[sel.colIndex]);
+                                }
+                                st.foundations[suit].push(sel.card);
+                                audio.chime(st.foundations[suit].length);
+                                app.score += 15;
+                                app.moves++;
+                                app.selected = null;
+                                updateHUD();
+                                renderCurrentBoard();
+                                checkKlondikeWin();
+                                return true;
+                            }
+                        }
+                        return false;
+                    };
+
+                    if (pile.length === 0) {
+                        fSlot.innerHTML = `<span class="text-xl sm:text-3xl opacity-35">${SUIT_INFO[suit].symbol}</span>`;
+                        fSlot.addEventListener('click', handleFoundationSlotTap);
+                    } else {
+                        // Show subtle underlying card if 2+ cards in foundation when dragging top card
+                        if (pile.length > 1) {
+                            const underCard = createCardElement(pile[pile.length - 2], 'absolute inset-0 pointer-events-none');
+                            fSlot.appendChild(underCard);
+                        }
+                        const topCard = pile[pile.length - 1];
+                        const cardEl = createCardElement(topCard);
+                        const foundPayload = {
+                            zone: 'foundation',
+                            suit,
+                            card: topCard,
+                            cards: [topCard],
+                            cardId: topCard.id
+                        };
+                        attachDraggable(cardEl, foundPayload, () => {
+                            if (handleFoundationSlotTap()) return;
+                            onKlondikeCardInteract(foundPayload);
+                        });
+                        fSlot.appendChild(cardEl);
+                    }
+                    topRow.appendChild(fSlot);
+                });
+
+                wrapper.appendChild(topRow);
+
+                // BOTTOM ROW: 7 Tableau Columns
+                const tabGrid = document.createElement('div');
+                tabGrid.className = 'grid grid-cols-7 gap-1.5 sm:gap-3 w-full items-start pb-28';
+
+                for (let col = 0; col < 7; col++) {
+                    const pile = st.tableau[col];
+                    const colEl = document.createElement('div');
+                    colEl.className = 'relative w-full min-h-[260px] sm:min-h-[360px]';
+                    colEl.dataset.dropZone = 'klondike-tableau';
+                    colEl.dataset.col = String(col);
+
+                    const emptySlot = document.createElement('div');
+                    emptySlot.className = 'card-slot w-full';
+                    emptySlot.innerHTML = `<span class="text-xs font-bold opacity-25">K</span>`;
+                    emptySlot.addEventListener('click', () => {
+                        if (app.selected && canMoveToKlondikeTableau(app.selected.card, pile)) {
+                            executeKlondikeMoveToTableau(app.selected, col);
+                        }
+                    });
+                    colEl.appendChild(emptySlot);
+
+                    let currentTopPx = 0;
+                    const holderEls = [];
+                    pile.forEach((card, idx) => {
+                        const holder = document.createElement('div');
+                        holder.className = 'absolute left-0 w-full';
+                        holder.style.top = `${currentTopPx}px`;
+                        holder.style.zIndex = String(idx + 2);
+                        holderEls.push(holder);
+
+                        const step = card.faceUp ? (window.innerWidth < 640 ? 22 : 28) : (window.innerWidth < 640 ? 10 : 14);
+                        currentTopPx += step;
+
+                        const cardEl = createCardElement(card);
+                        if (card.faceUp) {
+                            const stackCards = pile.slice(idx);
+                            const tabPayload = {
+                                zone: 'tableau',
+                                colIndex: col,
+                                cardIndex: idx,
+                                card,
+                                cards: stackCards,
+                                cardId: card.id,
+                                getSourceElements: () => holderEls.slice(idx)
+                            };
+                            attachDraggable(cardEl, tabPayload, () => {
+                                onKlondikeCardInteract(tabPayload);
+                            });
+                        }
+                        holder.appendChild(cardEl);
+                        colEl.appendChild(holder);
+                    });
+
+                    tabGrid.appendChild(colEl);
+                }
+
+                wrapper.appendChild(tabGrid);
+                boardRoot.innerHTML = '';
+                boardRoot.appendChild(wrapper);
+            }
+
+            function onKlondikeCardInteract(info) {
+                const st = app.state;
+                info.cardId = info.card.id;
+
+                // If another card is already selected, attempt to move selected onto this clicked target column
+                if (app.selected && app.selected.cardId !== info.cardId) {
+                    if (info.zone === 'tableau' && canMoveToKlondikeTableau(app.selected.card, st.tableau[info.colIndex])) {
+                        executeKlondikeMoveToTableau(app.selected, info.colIndex);
+                        return;
+                    }
+                }
+
+                // Attempt smart auto-move right away; if no valid auto-move, toggle selection
+                if (trySmartMoveKlondike(info)) {
+                    return;
+                }
+
+                if (app.selected && app.selected.cardId === info.cardId) {
+                    app.selected = null;
+                } else {
+                    audio.cardSnap(520);
+                    app.selected = info;
+                }
+                renderCurrentBoard();
+            }
+
+            // ============================================================================
+            // 6. MODE 2: PYRAMID SOLITAIRE (Pair Cards Summing to 13; Kings = 13 Solo)
+            // ============================================================================
+            function initPyramid() {
+                const deck = createDeck(app.currentSeed, 4, 1);
+                const pyramid = []; // 7 rows: row r has r+1 cards
+
+                for (let r = 0; r < 7; r++) {
+                    const row = [];
+                    for (let c = 0; c <= r; c++) {
+                        const card = deck.pop();
+                        card.faceUp = true;
+                        row.push(card);
+                    }
+                    pyramid.push(row);
+                }
+
+                // Remaining 24 cards go to Stock, flip 1 to Waste
+                deck.forEach(c => { c.faceUp = true; });
+                const waste = [deck.pop()];
+
+                app.state = {
+                    pyramid,
+                    stock: deck,
+                    waste,
+                    recyclesLeft: 2
+                };
+                setToast('Pyramid: Tap Kings (13) to remove immediately, or tap two free cards that add up to 13!');
+            }
+
+            function isPyramidCardUncovered(r, c) {
+                if (r === 6) return true; // Bottom row is always uncovered
+                const nextRow = app.state.pyramid[r + 1];
+                return nextRow[c] === null && nextRow[c + 1] === null;
+            }
+
+            function removePyramidCardSource(src) {
+                const st = app.state;
+                if (src.zone === 'pyramid') {
+                    st.pyramid[src.r][src.c] = null;
+                } else if (src.zone === 'waste') {
+                    st.waste.pop();
+                } else if (src.zone === 'stock') {
+                    st.stock.pop();
+                }
+            }
+
+            function checkPyramidWin() {
+                const st = app.state;
+                const anyLeft = st.pyramid.some(row => row.some(cell => cell !== null));
+                if (!anyLeft) {
+                    triggerWin('Pyramid Completely Cleared!');
+                }
+            }
+
+            function onPyramidCardClick(source) {
+                const { card } = source;
+                app.hintIds = [];
+
+                // King (rank 13) removes immediately by itself!
+                if (card.rank === 13) {
+                    pushUndoState();
+                    removePyramidCardSource(source);
+                    audio.chime(2);
+                    app.score += 50;
+                    app.moves++;
+                    app.selected = null;
+                    setToast('King (13) cleared!');
+                    updateHUD();
+                    renderCurrentBoard();
+                    checkPyramidWin();
+                    return;
+                }
+
+                // If a card is already selected, check if they sum to 13
+                if (app.selected) {
+                    if (app.selected.cardId === card.id) {
+                        app.selected = null;
+                        renderCurrentBoard();
+                        return;
+                    }
+
+                    if (app.selected.card.rank + card.rank === 13) {
+                        pushUndoState();
+                        removePyramidCardSource(app.selected);
+                        removePyramidCardSource(source);
+                        audio.chime(3);
+                        app.score += 100;
+                        app.moves++;
+                        setToast(`Paired ${RANK_LABELS[app.selected.card.rank]} + ${RANK_LABELS[card.rank]} = 13!`);
+                        app.selected = null;
+                        updateHUD();
+                        renderCurrentBoard();
+                        checkPyramidWin();
+                        return;
+                    } else {
+                        // Switch selection to the newly clicked card
+                        audio.cardSnap(500);
+                        app.selected = { ...source, cardId: card.id };
+                        setToast(`Selected ${RANK_LABELS[card.rank]} (Need ${RANK_LABELS[13 - card.rank]} to make 13)`);
+                        renderCurrentBoard();
+                        return;
+                    }
+                }
+
+                // Select first card
+                audio.cardSnap(520);
+                app.selected = { ...source, cardId: card.id };
+                setToast(`Selected ${RANK_LABELS[card.rank]} — tap a ${RANK_LABELS[13 - card.rank]} to make 13!`);
+                renderCurrentBoard();
+            }
+
+            function renderPyramid() {
+                const st = app.state;
+                btnAutocomplete.classList.add('hidden');
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'w-full max-w-4xl flex flex-col items-center justify-between space-y-4 pb-8';
+
+                // 1. Pyramid Tree Container
+                const pyrBox = document.createElement('div');
+                pyrBox.className = 'relative w-full max-w-2xl h-[290px] sm:h-[410px] mx-auto mt-1';
+
+                const cardWidthPct = 13.2; // Fits 7 cards across bottom row cleanly
+                const rowStepY = window.innerWidth < 640 ? 35 : 50;
+
+                for (let r = 0; r < 7; r++) {
+                    const rowCount = r + 1;
+                    const rowWidthPct = rowCount * cardWidthPct + (rowCount - 1) * 1.1;
+                    const startLeftPct = (100 - rowWidthPct) / 2;
+
+                    for (let c = 0; c <= r; c++) {
+                        const card = st.pyramid[r][c];
+                        if (!card) continue;
+
+                        const uncovered = isPyramidCardUncovered(r, c);
+                        const holder = document.createElement('div');
+                        holder.className = 'absolute transition-all duration-150';
+                        holder.style.width = `${cardWidthPct}%`;
+                        holder.style.left = `${startLeftPct + c * (cardWidthPct + 1.1)}%`;
+                        holder.style.top = `${r * rowStepY}px`;
+                        holder.style.zIndex = String(r * 10 + c);
+
+                        const cardEl = createCardElement(card, '', !uncovered);
+                        if (uncovered) {
+                            const srcObj = { zone: 'pyramid', r, c, card, cards: [card] };
+                            cardEl.dataset.dropZone = 'pyramid-card';
+                            cardEl.dataset.cardId = card.id;
+                            cardEl.dataset.rank = String(card.rank);
+                            cardEl.dataset.sourceInfo = JSON.stringify(srcObj);
+
+                            attachDraggable(cardEl, srcObj, () => {
+                                onPyramidCardClick(srcObj);
+                            });
+                        }
+                        holder.appendChild(cardEl);
+                        pyrBox.appendChild(holder);
+                    }
+                }
+                wrapper.appendChild(pyrBox);
+
+                // 2. Bottom Controls: Stock, Draw Button, Waste Pile
+                const bottomBar = document.createElement('div');
+                bottomBar.className = 'flex items-center justify-center space-x-5 sm:space-x-8 bg-slate-950/55 border border-emerald-800/60 px-6 py-3 rounded-2xl shadow-xl';
+
+                // Stock Top (Face-Up in Pyramid so it can be paired directly or drawn)
+                const stockWrap = document.createElement('div');
+                stockWrap.className = 'flex flex-col items-center';
+                const stockSlot = document.createElement('div');
+                stockSlot.className = 'card-slot w-14 sm:w-20 relative';
+                if (st.stock.length > 0) {
+                    const topStock = st.stock[st.stock.length - 1];
+                    const cEl = createCardElement(topStock);
+                    const stockSrc = { zone: 'stock', card: topStock, cards: [topStock] };
+                    cEl.dataset.dropZone = 'pyramid-card';
+                    cEl.dataset.cardId = topStock.id;
+                    cEl.dataset.rank = String(topStock.rank);
+                    cEl.dataset.sourceInfo = JSON.stringify(stockSrc);
+
+                    attachDraggable(cEl, stockSrc, () => {
+                        onPyramidCardClick(stockSrc);
+                    });
+                    stockSlot.appendChild(cEl);
+                } else {
+                    stockSlot.innerHTML = `<span class="text-xs text-slate-400">Empty</span>`;
+                }
+                const stockLbl = document.createElement('span');
+                stockLbl.className = 'text-[10px] text-slate-400 mt-1 font-semibold uppercase';
+                stockLbl.textContent = `Stock (${st.stock.length})`;
+                stockWrap.appendChild(stockSlot);
+                stockWrap.appendChild(stockLbl);
+                bottomBar.appendChild(stockWrap);
+
+                // Cycle Stock -> Waste Button
+                const drawBtn = document.createElement('button');
+                drawBtn.className = 'bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow flex flex-col items-center';
+                drawBtn.innerHTML = `
+                    <i class="fa-solid fa-forward-step text-base mb-0.5"></i>
+                    <span>${st.stock.length > 0 ? 'Draw Card' : `Recycle (${st.recyclesLeft})`}</span>
+                `;
+                drawBtn.addEventListener('click', () => {
+                    app.selected = null;
+                    app.hintIds = [];
+                    if (st.stock.length > 0) {
+                        pushUndoState();
+                        st.waste.push(st.stock.pop());
+                        audio.cardFlip();
+                        app.moves++;
+                    } else if (st.recyclesLeft > 0 && st.waste.length > 0) {
+                        pushUndoState();
+                        st.recyclesLeft--;
+                        while (st.waste.length > 0) {
+                            st.stock.push(st.waste.pop());
+                        }
+                        audio.cardFlip();
+                        app.moves++;
+                    } else {
+                        audio.invalid();
+                        setToast('No stock recycles remaining!');
+                    }
+                    updateHUD();
+                    renderCurrentBoard();
+                });
+                bottomBar.appendChild(drawBtn);
+
+                // Waste Pile Top
+                const wasteWrap = document.createElement('div');
+                wasteWrap.className = 'flex flex-col items-center';
+                const wasteSlot = document.createElement('div');
+                wasteSlot.className = 'card-slot w-14 sm:w-20 relative';
+                if (st.waste.length > 0) {
+                    const topWaste = st.waste[st.waste.length - 1];
+                    const cEl = createCardElement(topWaste);
+                    const wasteSrc = { zone: 'waste', card: topWaste, cards: [topWaste] };
+                    cEl.dataset.dropZone = 'pyramid-card';
+                    cEl.dataset.cardId = topWaste.id;
+                    cEl.dataset.rank = String(topWaste.rank);
+                    cEl.dataset.sourceInfo = JSON.stringify(wasteSrc);
+
+                    attachDraggable(cEl, wasteSrc, () => {
+                        onPyramidCardClick(wasteSrc);
+                    });
+                    wasteSlot.appendChild(cEl);
+                } else {
+                    wasteSlot.innerHTML = `<span class="text-xs text-slate-400">Waste</span>`;
+                }
+                const wasteLbl = document.createElement('span');
+                wasteLbl.className = 'text-[10px] text-slate-400 mt-1 font-semibold uppercase';
+                wasteLbl.textContent = `Waste (${st.waste.length})`;
+                wasteWrap.appendChild(wasteSlot);
+                wasteWrap.appendChild(wasteLbl);
+                bottomBar.appendChild(wasteWrap);
+
+                wrapper.appendChild(bottomBar);
+                boardRoot.innerHTML = '';
+                boardRoot.appendChild(wrapper);
+            }
+
+            // ============================================================================
+            // 7. MODE 3: TRIPEAKS SOLITAIRE (3 Peaks, ±1 Rank Wrap-Around, Streak Multiplier)
+            // ============================================================================
+            // TriPeaks 28-card geometry (x measured in half-card units 0..18 across 4 rows)
+            const TRIPEAKS_LAYOUT = [
+                // Row 0: 3 Peak Tops (indices 0..2)
+                { id: 0, row: 0, x: 3,  coveredBy: [3, 4] },
+                { id: 1, row: 0, x: 9,  coveredBy: [5, 6] },
+                { id: 2, row: 0, x: 15, coveredBy: [7, 8] },
+                // Row 1: 6 Cards (indices 3..8)
+                { id: 3, row: 1, x: 2,  coveredBy: [9, 10] },
+                { id: 4, row: 1, x: 4,  coveredBy: [10, 11] },
+                { id: 5, row: 1, x: 8,  coveredBy: [12, 13] },
+                { id: 6, row: 1, x: 10, coveredBy: [13, 14] },
+                { id: 7, row: 1, x: 14, coveredBy: [15, 16] },
+                { id: 8, row: 1, x: 16, coveredBy: [16, 17] },
+                // Row 2: 9 Cards (indices 9..17)
+                { id: 9,  row: 2, x: 1,  coveredBy: [18, 19] },
+                { id: 10, row: 2, x: 3,  coveredBy: [19, 20] },
+                { id: 11, row: 2, x: 5,  coveredBy: [20, 21] },
+                { id: 12, row: 2, x: 7,  coveredBy: [21, 22] },
+                { id: 13, row: 2, x: 9,  coveredBy: [22, 23] },
+                { id: 14, row: 2, x: 11, coveredBy: [23, 24] },
+                { id: 15, row: 2, x: 13, coveredBy: [24, 25] },
+                { id: 16, row: 2, x: 15, coveredBy: [25, 26] },
+                { id: 17, row: 2, x: 17, coveredBy: [26, 27] },
+                // Row 3: 10 Base Row Cards (indices 18..27)
+                { id: 18, row: 3, x: 0,  coveredBy: [] },
+                { id: 19, row: 3, x: 2,  coveredBy: [] },
+                { id: 20, row: 3, x: 4,  coveredBy: [] },
+                { id: 21, row: 3, x: 6,  coveredBy: [] },
+                { id: 22, row: 3, x: 8,  coveredBy: [] },
+                { id: 23, row: 3, x: 10, coveredBy: [] },
+                { id: 24, row: 3, x: 12, coveredBy: [] },
+                { id: 25, row: 3, x: 14, coveredBy: [] },
+                { id: 26, row: 3, x: 16, coveredBy: [] },
+                { id: 27, row: 3, x: 18, coveredBy: [] }
+            ];
+
+            function initTriPeaks() {
+                const deck = createDeck(app.currentSeed, 4, 1);
+                const slots = TRIPEAKS_LAYOUT.map(node => {
+                    const card = deck.pop();
+                    card.faceUp = (node.row === 3); // Bottom row starts face-up
+                    return { ...node, card };
+                });
+
+                const firstWaste = deck.pop();
+                firstWaste.faceUp = true;
+
+                app.state = {
+                    slots,
+                    stock: deck,
+                    waste: [firstWaste],
+                    streak: 0
+                };
+                setToast('TriPeaks: Tap any uncovered card 1 rank higher or lower than the Waste card (K ↔ A wraps!).');
+            }
+
+            function isTriPeaksSlotUncovered(slotIndex) {
+                const st = app.state;
+                const slot = st.slots[slotIndex];
+                if (!slot.card) return false;
+                return slot.coveredBy.every(childIdx => st.slots[childIdx].card === null);
+            }
+
+            function refreshTriPeaksFaceUp() {
+                const st = app.state;
+                st.slots.forEach((slot, idx) => {
+                    if (slot.card && isTriPeaksSlotUncovered(idx)) {
+                        slot.card.faceUp = true;
+                    }
+                });
+            }
+
+            function areRanksAdjacentWrap(r1, r2) {
+                const diff = Math.abs(r1 - r2);
+                return diff === 1 || diff === 12; // 12 handles King (13) <-> Ace (1)
+            }
+
+            function renderTriPeaks() {
+                const st = app.state;
+                btnAutocomplete.classList.add('hidden');
+                refreshTriPeaksFaceUp();
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'w-full max-w-5xl flex flex-col items-center justify-between space-y-5 pb-8';
+
+                // 1. Three Peaks Field
+                const peaksBox = document.createElement('div');
+                peaksBox.className = 'relative w-full max-w-3xl h-[240px] sm:h-[330px] mx-auto mt-2';
+
+                const cardW = 9.4; // % width per card
+                const unitStepX = (100 - cardW) / 18;
+                const rowStepY = window.innerWidth < 640 ? 44 : 62;
+
+                st.slots.forEach((slot, idx) => {
+                    if (!slot.card) return;
+                    const uncovered = isTriPeaksSlotUncovered(idx);
+
+                    const holder = document.createElement('div');
+                    holder.className = 'absolute transition-all duration-150';
+                    holder.style.width = `${cardW}%`;
+                    holder.style.left = `${slot.x * unitStepX}%`;
+                    holder.style.top = `${slot.row * rowStepY}px`;
+                    holder.style.zIndex = String(slot.row * 10 + idx);
+
+                    const cardEl = createCardElement(slot.card, '', !uncovered);
+                    if (uncovered) {
+                        const tpPayload = {
+                            slotIndex: idx,
+                            card: slot.card,
+                            cards: [slot.card]
+                        };
+                        attachDraggable(cardEl, tpPayload, () => {
+                            const topWaste = st.waste[st.waste.length - 1];
+                            if (areRanksAdjacentWrap(slot.card.rank, topWaste.rank)) {
+                                pushUndoState();
+                                const picked = slot.card;
+                                slot.card = null;
+                                st.waste.push(picked);
+                                st.streak++;
+                                refreshTriPeaksFaceUp();
+                                audio.chime(st.streak);
+                                const pts = 25 * st.streak;
+                                app.score += pts;
+                                app.moves++;
+                                app.hintIds = [];
+                                setToast(`Streak x${st.streak}! (+${pts} pts)`);
+                                updateHUD();
+                                renderCurrentBoard();
+
+                                if (st.slots.every(s => s.card === null)) {
+                                    triggerWin('All Three Peaks Conquered!');
+                                }
+                            } else {
+                                audio.invalid();
+                                setToast(`Must be 1 rank above or below ${RANK_LABELS[topWaste.rank]}!`);
+                            }
+                        });
+                    }
+                    holder.appendChild(cardEl);
+                    peaksBox.appendChild(holder);
+                });
+
+                wrapper.appendChild(peaksBox);
+
+                // 2. Bottom Stock, Waste & Streak Counter
+                const bottomBar = document.createElement('div');
+                bottomBar.className = 'flex items-center justify-center space-x-6 sm:space-x-10 bg-slate-950/55 border border-emerald-800/60 px-6 py-3 rounded-2xl shadow-xl';
+
+                // Stock Pile (Tap to draw next card)
+                const stockWrap = document.createElement('div');
+                stockWrap.className = 'flex flex-col items-center';
+                const stockSlot = document.createElement('div');
+                stockSlot.className = 'card-slot w-14 sm:w-20 cursor-pointer relative';
+                if (st.stock.length > 0) {
+                    const backEl = createCardElement({ id: 'tp_stock', faceUp: false });
+                    const badge = document.createElement('span');
+                    badge.className = 'absolute bottom-1 right-1 bg-slate-950/85 text-amber-400 text-[10px] font-bold px-1.5 py-0.5 rounded';
+                    badge.textContent = st.stock.length;
+                    backEl.appendChild(badge);
+                    stockSlot.appendChild(backEl);
+                } else {
+                    stockSlot.innerHTML = `<span class="text-[11px] text-slate-400">Empty</span>`;
+                }
+                stockSlot.addEventListener('click', () => {
+                    if (st.stock.length > 0) {
+                        pushUndoState();
+                        const next = st.stock.pop();
+                        next.faceUp = true;
+                        st.waste.push(next);
+                        st.streak = 0;
+                        app.hintIds = [];
+                        audio.cardFlip();
+                        app.moves++;
+                        setToast('Drew new target card from Stock.');
+                        updateHUD();
+                        renderCurrentBoard();
+                    } else {
+                        audio.invalid();
+                    }
+                });
+                const stockLbl = document.createElement('span');
+                stockLbl.className = 'text-[10px] text-slate-400 mt-1 font-semibold uppercase';
+                stockLbl.textContent = `Tap to Draw (${st.stock.length})`;
+                stockWrap.appendChild(stockSlot);
+                stockWrap.appendChild(stockLbl);
+                bottomBar.appendChild(stockWrap);
+
+                // Active Waste Target Card (also acts as drop target for dragged TriPeaks cards)
+                const wasteWrap = document.createElement('div');
+                wasteWrap.className = 'flex flex-col items-center';
+                const wasteSlot = document.createElement('div');
+                wasteSlot.className = 'card-slot w-14 sm:w-20 relative';
+                wasteSlot.dataset.dropZone = 'tripeaks-waste';
+                const topWaste = st.waste[st.waste.length - 1];
+                wasteSlot.appendChild(createCardElement(topWaste));
+                const wasteLbl = document.createElement('span');
+                wasteLbl.className = 'text-[10px] text-amber-400 mt-1 font-bold uppercase';
+                wasteLbl.textContent = `Current: ${RANK_LABELS[topWaste.rank]}`;
+                wasteWrap.appendChild(wasteSlot);
+                wasteWrap.appendChild(wasteLbl);
+                bottomBar.appendChild(wasteWrap);
+
+                // Streak Badge
+                const streakBadge = document.createElement('div');
+                streakBadge.className = 'bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-2 text-center';
+                streakBadge.innerHTML = `
+                    <p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Streak</p>
+                    <p class="font-bold text-xl sm:text-2xl ${st.streak > 0 ? 'text-amber-400' : 'text-slate-400'}">${st.streak}🔥</p>
+                `;
+                bottomBar.appendChild(streakBadge);
+
+                wrapper.appendChild(bottomBar);
+                boardRoot.innerHTML = '';
+                boardRoot.appendChild(wrapper);
+            }
+
+            // ============================================================================
+            // 8. MODE 4: SPIDER SOLITAIRE (10 Columns, 2 Decks, 1 / 2 / 4 Suits)
+            // ============================================================================
+            function initSpider() {
+                const deck = createDeck(app.currentSeed, app.spiderSuits, 2); // 104 cards total
+                const tableau = Array.from({ length: 10 }, () => []);
+
+                // Deal 54 cards: first 4 columns get 6 cards, remaining 6 columns get 5 cards
+                for (let col = 0; col < 10; col++) {
+                    const count = col < 4 ? 6 : 5;
+                    for (let r = 0; r < count; r++) {
+                        const card = deck.pop();
+                        card.faceUp = (r === count - 1);
+                        tableau[col].push(card);
+                    }
+                }
+
+                // Remaining 50 cards stay in Stock (5 deals of 10 cards)
+                app.state = {
+                    tableau,
+                    stock: deck,
+                    completedSuits: [] // Up to 8 completed K->A runs
+                };
+                setToast(`Spider (${app.spiderSuits}-Suit): Build descending runs K to A of the same suit!`);
+            }
+
+            // Verify if a sub-stack from cardIndex to end of column is a valid movable same-suit sequence
+            function isSpiderRunMovable(pile, startIndex) {
+                for (let i = startIndex; i < pile.length - 1; i++) {
+                    const curr = pile[i];
+                    const next = pile[i + 1];
+                    if (!curr.faceUp || !next.faceUp) return false;
+                    if (curr.suit !== next.suit || curr.rank !== next.rank + 1) return false;
+                }
+                return pile[startIndex].faceUp;
+            }
+
+            // Check & clear any completed King-to-Ace same-suit run at the bottom of a column
+            function checkSpiderCompletedRuns() {
+                const st = app.state;
+                for (let col = 0; col < 10; col++) {
+                    const pile = st.tableau[col];
+                    if (pile.length < 13) continue;
+
+                    const startIdx = pile.length - 13;
+                    if (pile[startIdx].rank === 13 && isSpiderRunMovable(pile, startIdx)) {
+                        const removed = pile.splice(startIdx, 13);
+                        st.completedSuits.push(removed[0].suit);
+                        flipTopTableauIfNeeded(pile);
+                        audio.winFanfare();
+                        app.score += 150;
+                        setToast('Completed King-to-Ace run cleared!');
+                    }
+                }
+
+                if (st.completedSuits.length === 8) {
+                    triggerWin(`Spider (${app.spiderSuits}-Suit) Mastered!`);
+                }
+            }
+
+            function executeSpiderMove(fromCol, cardIndex, toCol) {
+                const st = app.state;
+                pushUndoState();
+                const moving = st.tableau[fromCol].splice(cardIndex);
+                st.tableau[toCol].push(...moving);
+                flipTopTableauIfNeeded(st.tableau[fromCol]);
+
+                audio.cardSnap();
+                app.moves++;
+                app.selected = null;
+                app.hintIds = [];
+                checkSpiderCompletedRuns();
+                updateHUD();
+                renderCurrentBoard();
+            }
+
+            function onSpiderCardClick(colIndex, cardIndex, card) {
+                const st = app.state;
+                const pile = st.tableau[colIndex];
+
+                // If another valid stack is already selected, try dropping it onto this column
+                if (app.selected && app.selected.colIndex !== colIndex) {
+                    const targetTop = pile[pile.length - 1];
+                    if (targetTop.rank === app.selected.card.rank + 1) {
+                        executeSpiderMove(app.selected.colIndex, app.selected.cardIndex, colIndex);
+                        return;
+                    }
+                }
+
+                // Ensure the clicked card and everything below it form a valid same-suit descending run
+                if (!isSpiderRunMovable(pile, cardIndex)) {
+                    audio.invalid();
+                    setToast('You can only move a stack of cards together if they are the same suit in sequence!');
+                    return;
+                }
+
+                // Smart Auto-Move: Prefer a column whose top card is the SAME suit and rank+1, else any suit rank+1, else empty column
+                let bestSameSuitCol = -1;
+                let bestAnySuitCol = -1;
+                let emptyCol = -1;
+
+                for (let c = 0; c < 10; c++) {
+                    if (c === colIndex) continue;
+                    const tPile = st.tableau[c];
+                    if (tPile.length === 0) {
+                        if (emptyCol === -1 && cardIndex > 0) emptyCol = c;
+                    } else {
+                        const top = tPile[tPile.length - 1];
+                        if (top.rank === card.rank + 1) {
+                            if (top.suit === card.suit && bestSameSuitCol === -1) bestSameSuitCol = c;
+                            else if (bestAnySuitCol === -1) bestAnySuitCol = c;
+                        }
+                    }
+                }
+
+                const chosenTarget = bestSameSuitCol !== -1 ? bestSameSuitCol : (bestAnySuitCol !== -1 ? bestAnySuitCol : emptyCol);
+                if (chosenTarget !== -1) {
+                    executeSpiderMove(colIndex, cardIndex, chosenTarget);
+                    return;
+                }
+
+                // Otherwise select the card/run manually
+                if (app.selected && app.selected.cardId === card.id) {
+                    app.selected = null;
+                } else {
+                    audio.cardSnap(520);
+                    app.selected = { colIndex, cardIndex, card, cardId: card.id };
+                }
+                renderCurrentBoard();
+            }
+
+            function renderSpider() {
+                const st = app.state;
+                btnAutocomplete.classList.add('hidden');
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'w-full max-w-6xl flex flex-col space-y-3';
+
+                // Top Row: Deal Stock (Left) & 8 Completed Suit Slots (Right)
+                const topRow = document.createElement('div');
+                topRow.className = 'flex items-center justify-between bg-slate-950/50 border border-emerald-900/60 px-3 sm:px-5 py-2 rounded-2xl';
+
+                const dealsLeft = Math.floor(st.stock.length / 10);
+                const dealBtn = document.createElement('button');
+                dealBtn.className = 'bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl shadow flex items-center space-x-2';
+                dealBtn.disabled = dealsLeft === 0;
+                dealBtn.innerHTML = `<i class="fa-solid fa-layer-group"></i><span>Deal Row (${dealsLeft} left)</span>`;
+                dealBtn.addEventListener('click', () => {
+                    if (st.stock.length < 10) return;
+                    pushUndoState();
+                    for (let c = 0; c < 10; c++) {
+                        const card = st.stock.pop();
+                        card.faceUp = true;
+                        st.tableau[c].push(card);
+                    }
+                    audio.cardFlip();
+                    app.moves++;
+                    app.selected = null;
+                    app.hintIds = [];
+                    checkSpiderCompletedRuns();
+                    updateHUD();
+                    renderCurrentBoard();
+                });
+                topRow.appendChild(dealBtn);
+
+                // Completed Runs Progress
+                const runsWrap = document.createElement('div');
+                runsWrap.className = 'flex items-center space-x-1.5';
+                for (let i = 0; i < 8; i++) {
+                    const badge = document.createElement('div');
+                    const doneSuit = st.completedSuits[i];
+                    if (doneSuit) {
+                        badge.className = 'w-6 h-8 sm:w-7 sm:h-9 rounded bg-white text-slate-900 font-bold text-xs flex items-center justify-center shadow';
+                        badge.textContent = SUIT_INFO[doneSuit].symbol;
+                    } else {
+                        badge.className = 'w-6 h-8 sm:w-7 sm:h-9 rounded border border-dashed border-white/25 bg-black/20 flex items-center justify-center text-[10px] text-white/25';
+                        badge.textContent = 'K';
+                    }
+                    runsWrap.appendChild(badge);
+                }
+                topRow.appendChild(runsWrap);
+                wrapper.appendChild(topRow);
+
+                // 10 Tableau Columns
+                const tabGrid = document.createElement('div');
+                tabGrid.className = 'grid grid-cols-10 gap-1 sm:gap-2 w-full items-start pb-36';
+
+                for (let col = 0; col < 10; col++) {
+                    const pile = st.tableau[col];
+                    const colEl = document.createElement('div');
+                    colEl.className = 'relative w-full min-h-[280px] sm:min-h-[380px]';
+                    colEl.dataset.dropZone = 'spider-tableau';
+                    colEl.dataset.col = String(col);
+
+                    const emptySlot = document.createElement('div');
+                    emptySlot.className = 'card-slot w-full';
+                    emptySlot.addEventListener('click', () => {
+                        if (app.selected) {
+                            executeSpiderMove(app.selected.colIndex, app.selected.cardIndex, col);
+                        }
+                    });
+                    colEl.appendChild(emptySlot);
+
+                    let topPx = 0;
+                    const holderEls = [];
+                    pile.forEach((card, idx) => {
+                        const holder = document.createElement('div');
+                        holder.className = 'absolute left-0 w-full';
+                        holder.style.top = `${topPx}px`;
+                        holder.style.zIndex = String(idx + 2);
+                        holderEls.push(holder);
+
+                        const step = card.faceUp ? (window.innerWidth < 640 ? 19 : 25) : (window.innerWidth < 640 ? 8 : 11);
+                        topPx += step;
+
+                        const isMovable = card.faceUp && isSpiderRunMovable(pile, idx);
+                        const cardEl = createCardElement(card, '', card.faceUp && !isMovable);
+                        if (card.faceUp) {
+                            if (isMovable) {
+                                const spiderPayload = {
+                                    colIndex: col,
+                                    cardIndex: idx,
+                                    card,
+                                    cards: pile.slice(idx),
+                                    cardId: card.id,
+                                    getSourceElements: () => holderEls.slice(idx)
+                                };
+                                attachDraggable(cardEl, spiderPayload, () => {
+                                    onSpiderCardClick(col, idx, card);
+                                });
+                            } else {
+                                cardEl.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    onSpiderCardClick(col, idx, card);
+                                });
+                            }
+                        }
+                        holder.appendChild(cardEl);
+                        colEl.appendChild(holder);
+                    });
+
+                    tabGrid.appendChild(colEl);
+                }
+
+                wrapper.appendChild(tabGrid);
+                boardRoot.innerHTML = '';
+                boardRoot.appendChild(wrapper);
+            }
+
+            // ============================================================================
+            // 9. INTELLIGENT HINT SYSTEM ACROSS ALL 4 MODES
+            // ============================================================================
+            function triggerHint() {
+                app.hintIds = [];
+                const st = app.state;
+
+                if (app.mode === 'klondike') {
+                    // Check Waste & Tableau top cards for Foundation moves
+                    if (st.waste.length > 0) {
+                        const wTop = st.waste[st.waste.length - 1];
+                        if (canMoveToKlondikeFoundation(wTop, st.foundations)) {
+                            app.hintIds = [wTop.id];
+                        }
+                    }
+                    if (app.hintIds.length === 0) {
+                        for (let c = 0; c < 7; c++) {
+                            const pile = st.tableau[c];
+                            if (pile.length === 0) continue;
+                            const top = pile[pile.length - 1];
+                            if (canMoveToKlondikeFoundation(top, st.foundations)) {
+                                app.hintIds = [top.id];
+                                break;
+                            }
+                        }
+                    }
+                    // Check Tableau stacks or Waste for Tableau moves
+                    if (app.hintIds.length === 0) {
+                        for (let c = 0; c < 7; c++) {
+                            const pile = st.tableau[c];
+                            const firstUpIdx = pile.findIndex(card => card.faceUp);
+                            if (firstUpIdx === -1) continue;
+                            const leadCard = pile[firstUpIdx];
+                            // Only suggest moving if it reveals a face-down card or frees a column for a King
+                            if (firstUpIdx === 0 && leadCard.rank === 13) continue;
+                            for (let dest = 0; dest < 7; dest++) {
+                                if (dest === c) continue;
+                                if (canMoveToKlondikeTableau(leadCard, st.tableau[dest])) {
+                                    app.hintIds = [leadCard.id];
+                                    break;
+                                }
+                            }
+                            if (app.hintIds.length > 0) break;
+                        }
+                    }
+                    if (app.hintIds.length === 0 && st.waste.length > 0) {
+                        const wTop = st.waste[st.waste.length - 1];
+                        for (let dest = 0; dest < 7; dest++) {
+                            if (canMoveToKlondikeTableau(wTop, st.tableau[dest])) {
+                                app.hintIds = [wTop.id];
+                                break;
+                            }
+                        }
+                    }
+                } else if (app.mode === 'pyramid') {
+                    // Collect all uncovered cards
+                    const open = [];
+                    for (let r = 0; r < 7; r++) {
+                        for (let c = 0; c <= r; c++) {
+                            if (st.pyramid[r][c] && isPyramidCardUncovered(r, c)) {
+                                open.push(st.pyramid[r][c]);
+                            }
+                        }
+                    }
+                    if (st.waste.length > 0) open.push(st.waste[st.waste.length - 1]);
+                    if (st.stock.length > 0) open.push(st.stock[st.stock.length - 1]);
+
+                    const king = open.find(c => c.rank === 13);
+                    if (king) {
+                        app.hintIds = [king.id];
+                    } else {
+                        for (let i = 0; i < open.length; i++) {
+                            for (let j = i + 1; j < open.length; j++) {
+                                if (open[i].rank + open[j].rank === 13) {
+                                    app.hintIds = [open[i].id, open[j].id];
+                                    break;
+                                }
+                            }
+                            if (app.hintIds.length > 0) break;
+                        }
+                    }
+                } else if (app.mode === 'tripeaks') {
+                    const topWaste = st.waste[st.waste.length - 1];
+                    for (let i = 0; i < st.slots.length; i++) {
+                        const s = st.slots[i];
+                        if (s.card && isTriPeaksSlotUncovered(i) && areRanksAdjacentWrap(s.card.rank, topWaste.rank)) {
+                            app.hintIds = [s.card.id];
+                            break;
+                        }
+                    }
+                } else if (app.mode === 'spider') {
+                    for (let c = 0; c < 10; c++) {
+                        const pile = st.tableau[c];
+                        if (pile.length === 0) continue;
+                        let runStart = pile.length - 1;
+                        while (runStart > 0 && isSpiderRunMovable(pile, runStart - 1)) {
+                            runStart--;
+                        }
+                        const leadCard = pile[runStart];
+                        for (let dest = 0; dest < 10; dest++) {
+                            if (dest === c || st.tableau[dest].length === 0) continue;
+                            const destTop = st.tableau[dest][st.tableau[dest].length - 1];
+                            if (destTop.rank === leadCard.rank + 1) {
+                                app.hintIds = [leadCard.id, destTop.id];
+                                break;
+                            }
+                        }
+                        if (app.hintIds.length > 0) break;
+                    }
+                }
+
+                if (app.hintIds.length > 0) {
+                    audio.chime(1);
+                    setToast('Hint highlighted in glowing blue!');
+                    renderCurrentBoard();
+                } else {
+                    audio.invalid();
+                    setToast('No direct table moves found — try drawing from the Stock pile!');
+                }
+            }
+
+            // ============================================================================
+            // 10. SUB-TOOLBAR OPTIONS, VICTORY ANIMATION & EVENT WIRING
+            // ============================================================================
+            function renderModeSubToolbar() {
+                modeOptionsBar.innerHTML = '';
+
+                if (app.mode === 'klondike') {
+                    subtitleMode.textContent = `Classic Klondike (Draw ${app.klondikeDraw})`;
+                    [1, 3].forEach(drawCount => {
+                        const btn = document.createElement('button');
+                        const active = app.klondikeDraw === drawCount;
+                        btn.className = `px-2.5 py-1 rounded-lg font-semibold transition ${active ? 'bg-amber-500 text-slate-950' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'}`;
+                        btn.textContent = `Draw ${drawCount}`;
+                        btn.addEventListener('click', () => {
+                            if (app.klondikeDraw !== drawCount) {
+                                app.klondikeDraw = drawCount;
+                                startDeal(true);
+                            }
+                        });
+                        modeOptionsBar.appendChild(btn);
+                    });
+                } else if (app.mode === 'pyramid') {
+                    subtitleMode.textContent = 'Pyramid Solitaire (Pair to 13)';
+                    const pill = document.createElement('span');
+                    pill.className = 'text-amber-300 font-semibold';
+                    pill.innerHTML = `<i class="fa-solid fa-calculator mr-1"></i>K=13 (Solo) • Q+A=13 • J+2=13 • 10+3=13`;
+                    modeOptionsBar.appendChild(pill);
+                } else if (app.mode === 'tripeaks') {
+                    subtitleMode.textContent = 'TriPeaks Solitaire';
+                    const pill = document.createElement('span');
+                    pill.className = 'text-amber-300 font-semibold';
+                    pill.innerHTML = `<i class="fa-solid fa-bolt mr-1"></i>Match ±1 Rank (K ↔ A Wraps Around)`;
+                    modeOptionsBar.appendChild(pill);
+                } else if (app.mode === 'spider') {
+                    subtitleMode.textContent = `Spider Solitaire (${app.spiderSuits} Suit${app.spiderSuits > 1 ? 's' : ''})`;
+                    [
+                        { suits: 1, label: '1 Suit (Easy)' },
+                        { suits: 2, label: '2 Suits (Medium)' },
+                        { suits: 4, label: '4 Suits (Hard)' }
+                    ].forEach(opt => {
+                        const btn = document.createElement('button');
+                        const active = app.spiderSuits === opt.suits;
+                        btn.className = `px-2.5 py-1 rounded-lg font-semibold transition ${active ? 'bg-amber-500 text-slate-950' : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'}`;
+                        btn.textContent = opt.label;
+                        btn.addEventListener('click', () => {
+                            if (app.spiderSuits !== opt.suits) {
+                                app.spiderSuits = opt.suits;
+                                startDeal(true);
+                            }
+                        });
+                        modeOptionsBar.appendChild(btn);
+                    });
+                }
+            }
+
+            function renderCurrentBoard() {
+                if (app.mode === 'klondike') renderKlondike();
+                else if (app.mode === 'pyramid') renderPyramid();
+                else if (app.mode === 'tripeaks') renderTriPeaks();
+                else if (app.mode === 'spider') renderSpider();
+            }
+
+            function startDeal(newRandomSeed = true) {
+                if (newRandomSeed) {
+                    app.currentSeed = Math.floor(Math.random() * 899999999) + 100000000;
+                }
+                app.score = 0;
+                app.moves = 0;
+                app.seconds = 0;
+                app.selected = null;
+                app.hintIds = [];
+                app.undoStack = [];
+                app.won = false;
+
+                victoryModal.classList.add('hidden');
+                victoryCanvas.classList.add('hidden');
+
+                if (app.timerInterval) clearInterval(app.timerInterval);
+                app.timerInterval = setInterval(() => {
+                    if (!app.won) {
+                        app.seconds++;
+                        statTime.textContent = formatTime(app.seconds);
+                    }
+                }, 1000);
+
+                if (app.mode === 'klondike') initKlondike();
+                else if (app.mode === 'pyramid') initPyramid();
+                else if (app.mode === 'tripeaks') initTriPeaks();
+                else if (app.mode === 'spider') initSpider();
+
+                audio.cardFlip();
+                renderModeSubToolbar();
+                updateHUD();
+                renderCurrentBoard();
+            }
+
+            function triggerWin(subtitleText) {
+                app.won = true;
+                audio.winFanfare();
+
+                document.getElementById('victory-subtitle').textContent = subtitleText;
+                document.getElementById('win-score').textContent = app.score;
+                document.getElementById('win-moves').textContent = app.moves;
+                document.getElementById('win-time').textContent = formatTime(app.seconds);
+
+                victoryModal.classList.remove('hidden');
+                launchConfettiCelebration();
+            }
+
+            function launchConfettiCelebration() {
+                victoryCanvas.classList.remove('hidden');
+                victoryCanvas.width = window.innerWidth;
+                victoryCanvas.height = window.innerHeight;
+                const cCtx = victoryCanvas.getContext('2d');
+
+                const pieces = Array.from({ length: 90 }, () => ({
+                    x: Math.random() * victoryCanvas.width,
+                    y: -20 - Math.random() * 200,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: 2.5 + Math.random() * 4,
+                    size: 7 + Math.random() * 7,
+                    color: ['#f59e0b', '#10b981', '#38bdf8', '#f43f5e', '#fef08a'][Math.floor(Math.random() * 5)],
+                    rot: Math.random() * Math.PI
+                }));
+
+                function stepConfetti() {
+                    if ( !app.won ) return;
+                    cCtx.clearRect(0, 0, victoryCanvas.width, victoryCanvas.height);
+                    pieces.forEach(p => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.rot += 0.06;
+                        if (p.y > victoryCanvas.height) p.y = -15;
+                        cCtx.save();
+                        cCtx.translate(p.x, p.y);
+                        cCtx.rotate(p.rot);
+                        cCtx.fillStyle = p.color;
+                        cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.65);
+                        cCtx.restore();
+                    });
+                    requestAnimationFrame(stepConfetti);
+                }
+                requestAnimationFrame(stepConfetti);
+            }
+
+            // Klondike Auto-Complete Runner
+            btnAutocomplete.addEventListener('click', () => {
+                if (app.mode !== 'klondike') return;
+                const st = app.state;
+                const stepInterval = setInterval(() => {
+                    let moved = false;
+                    for (let c = 0; c < 7; c++) {
+                        const pile = st.tableau[c];
+                        if (pile.length === 0) continue;
+                        const top = pile[pile.length - 1];
+                        if (canMoveToKlondikeFoundation(top, st.foundations)) {
+                            pile.pop();
+                            st.foundations[top.suit].push(top);
+                            app.score += 15;
+                            app.moves++;
+                            audio.chime(st.foundations[top.suit].length);
+                            moved = true;
+                            updateHUD();
+                            renderCurrentBoard();
+                            break;
+                        }
+                    }
+                    const total = Object.values(st.foundations).reduce((acc, p) => acc + p.length, 0);
+                    if (!moved || total === 52) {
+                        clearInterval(stepInterval);
+                        checkKlondikeWin();
+                    }
+                }, 90);
+            });
+
+            // Mode Switcher Tab Listeners
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const selectedMode = tab.getAttribute('data-mode');
+                    document.querySelectorAll('.mode-tab').forEach(t => {
+                        t.classList.remove('active');
+                        t.classList.add('text-slate-300');
+                    });
+                    tab.classList.add('active');
+                    tab.classList.remove('text-slate-300');
+                    app.mode = selectedMode;
+                    startDeal(true);
+                });
+            });
+
+            // Action Buttons
+            btnNewDeal.addEventListener('click', () => startDeal(true));
+            btnRestartDeal.addEventListener('click', () => startDeal(false));
+            btnWinPlayAgain.addEventListener('click', () => startDeal(true));
+            btnUndo.addEventListener('click', performUndo);
+            btnHint.addEventListener('click', triggerHint);
+
+            btnRules.addEventListener('click', () => rulesModal.classList.remove('hidden'));
+            btnCloseRules.addEventListener('click', () => rulesModal.classList.add('hidden'));
+            btnGotIt.addEventListener('click', () => rulesModal.classList.add('hidden'));
+
+            btnSound.addEventListener('click', () => {
+                audio.muted = !audio.muted;
+                iconSound.className = audio.muted ? 'fa-solid fa-volume-xmark text-slate-500' : 'fa-solid fa-volume-high text-amber-400';
+                if (!audio.muted) audio.cardSnap();
+            });
+
+            // Keyboard Shortcuts (Ctrl+Z / Z for Undo, H for Hint, N for New Deal)
+            window.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                    e.preventDefault();
+                    performUndo();
+                } else if (e.key === 'h' || e.key === 'H') {
+                    triggerHint();
+                }
+            });
+
+            window.addEventListener('resize', () => renderCurrentBoard());
+
+            window.onload = function () {
+                startDeal(true);
+            };
+        })();
+    </script>
+</body>
+</html>
